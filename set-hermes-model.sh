@@ -30,8 +30,12 @@ hermes config set agent.reasoning_effort none
 
 echo "✅ Hermes 已配置: ${PROVIDER_ID} → ${MODEL} @ ${BASE_URL}（已关闭 fast/reasoning）"
 
-# ── 启用：重启 gateway 让新模型生效 ──────────────────────
-echo "🔄 重启 hermes gateway..."
-hermes gateway restart
+# ── 启用：启动/刷新 gateway 让新模型生效 ─────────────────
+# 改过 config 后 service 定义会变 stale，hermes 提示直接 start 即可。
+echo "🔄 启动 hermes gateway..."
+hermes gateway start
 hermes gateway status
-echo "✅ 已启用，当前默认模型: $(hermes config get model.default)"
+
+echo "✅ 已启用。当前配置（grep model）："
+# hermes config 没有 get 子命令，用 show 查看
+hermes config show | grep -iE "provider|model|reasoning" || true
