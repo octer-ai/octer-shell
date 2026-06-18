@@ -44,7 +44,10 @@ fi
 [ -n "$PY" ] || { echo "❌ 仍找不到带 pyyaml 的 python。手动装一个再重试，例如: python3 -m pip install pyyaml"; exit 1; }
 echo "python: $PY"
 
-API_KEY="$API_KEY" NAME="$NAME" BASE_URL="$BASE_URL" MODEL="$MODEL" MAX_TOKENS="$MAX_TOKENS" \
+# provider slug = 名字归一化（小写、空格转 -），custom provider 解析按它匹配
+SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
+
+API_KEY="$API_KEY" NAME="$NAME" SLUG="$SLUG" BASE_URL="$BASE_URL" MODEL="$MODEL" MAX_TOKENS="$MAX_TOKENS" \
 "$PY" - "$CFG" <<'PY'
 import os, sys, yaml
 path = sys.argv[1]
@@ -55,6 +58,7 @@ except FileNotFoundError:
     cfg = {}
 
 NAME = os.environ["NAME"]
+SLUG = os.environ["SLUG"]
 BASE = os.environ["BASE_URL"].rstrip("/")
 KEY  = os.environ["API_KEY"]
 MODEL = os.environ["MODEL"]
@@ -79,7 +83,7 @@ m = cfg.get("model")
 if not isinstance(m, dict):
     m = {}
 m.update({
-    "provider": "custom",
+    "provider": SLUG,        # 关键：按 provider slug 匹配命名 custom provider，而非字面量 "custom"
     "base_url": BASE,
     "default": MODEL,
     "api_key": KEY,
