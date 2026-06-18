@@ -25,7 +25,10 @@ hermes config set model.default            "$MODEL"
 # 存 API Key（写入 ~/.hermes/.env）
 hermes config set "$API_KEY_ENV" "$API_KEY"
 
-echo "✅ Hermes 已配置: ${PROVIDER_ID} → ${MODEL} @ ${BASE_URL}"
+# Octer 模型不支持 fast 模式 —— 关闭 reasoning_effort，避免发送相关参数
+hermes config set agent.reasoning_effort none
+
+echo "✅ Hermes 已配置: ${PROVIDER_ID} → ${MODEL} @ ${BASE_URL}（已关闭 fast/reasoning）"
 
 # ── 启用：重启 gateway 让新模型生效 ──────────────────────
 echo "🔄 重启 hermes gateway..."
