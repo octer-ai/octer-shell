@@ -25,13 +25,23 @@ echo "config: $CFG"
 # 选一个带 pyyaml 的 python（系统 python3 常常没装；hermes 自己的 venv 一定有）。
 HERMES_BIN="$(command -v hermes)"
 HERMES_DIR="$(dirname "$HERMES_BIN")"
+HERMES_HOME="$(dirname "$CFG")"                       # 通常是 ~/.hermes
 HERMES_PY_SHEBANG="$(head -1 "$HERMES_BIN" 2>/dev/null | sed 's|^#!||' | awk '{print $1}')"
 PY=""
-for cand in "$HERMES_PY_SHEBANG" "$HERMES_DIR/python" "$HERMES_DIR/python3" python3 python; do
+for cand in \
+  "$HERMES_HOME/hermes-agent/venv/bin/python" \
+  "$HERMES_HOME/hermes-agent/venv/bin/python3" \
+  "$HERMES_PY_SHEBANG" "$HERMES_DIR/python" "$HERMES_DIR/python3" \
+  python3 python; do
   [ -n "$cand" ] || continue
   if "$cand" -c "import yaml" >/dev/null 2>&1; then PY="$cand"; break; fi
 done
-[ -n "$PY" ] || { echo "❌ 找不到带 pyyaml 的 python；可执行: \"$HERMES_DIR/pip\" install pyyaml"; exit 1; }
+if [ -z "$PY" ]; then
+  # 兜底：给系统 python3 装 pyyaml（--user，无需 sudo）
+  echo "⚠️ 未找到带 pyyaml 的 python，尝试 pip 安装..."
+  python3 -m pip install --user pyyaml >/dev/null 2>&1 && python3 -c "import yaml" >/dev/null 2>&1 && PY="python3"
+fi
+[ -n "$PY" ] || { echo "❌ 仍找不到带 pyyaml 的 python。手动装一个再重试，例如: python3 -m pip install pyyaml"; exit 1; }
 echo "python: $PY"
 
 API_KEY="$API_KEY" NAME="$NAME" BASE_URL="$BASE_URL" MODEL="$MODEL" MAX_TOKENS="$MAX_TOKENS" \
