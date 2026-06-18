@@ -31,13 +31,12 @@
 
 ### 脚本做了什么
 
-基于 Hermes 官方 `hermes config set` 命令：
+基于 `hermes config set`，模型配置全部平铺在 `model.*` 下（这版 Hermes 没有 `custom_providers` 块）：
 
-1. 注册自定义 provider `octer`（`base_url` / `api_key_env` / `model_id`）
-2. 把当前模型切到该 provider，默认模型 `Octer-1.0-lite`
-3. 把 API Key 写入 `~/.hermes/.env`（变量名 `OCTER_LLM_API_KEY`）
-4. 关闭 `agent.reasoning_effort`（Octer 模型不支持 fast 模式）
-5. **重启 gateway 让新模型立即生效**，并打印当前默认模型
+1. 选中 custom 模型：`model.provider=custom`、`model.base_url`、`model.custom_provider_id=octer`、`model.default=Octer-1.0-lite`、`model.max_tokens=65536`
+2. 写 API Key：同时设 `model.api_key` 和 `OPENAI_API_KEY` 兜底
+3. 关闭 `agent.reasoning_effort`（Octer 模型不支持 fast 模式）
+4. **`hermes gateway start` 让新模型立即生效**（改配置后 service 会 stale，必须 `start` 重新生成，`restart` 不行），并打印当前配置
 
 ### 前置条件
 
