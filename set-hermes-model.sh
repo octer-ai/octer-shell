@@ -22,8 +22,20 @@ CFG="$(hermes config path)"
 echo "config: $CFG"
 [ -f "$CFG" ] && cp -f "$CFG" "${CFG}.bak.$(date +%s)"
 
+# 选一个带 pyyaml 的 python（系统 python3 常常没装；hermes 自己的 venv 一定有）。
+HERMES_BIN="$(command -v hermes)"
+HERMES_DIR="$(dirname "$HERMES_BIN")"
+HERMES_PY_SHEBANG="$(head -1 "$HERMES_BIN" 2>/dev/null | sed 's|^#!||' | awk '{print $1}')"
+PY=""
+for cand in "$HERMES_PY_SHEBANG" "$HERMES_DIR/python" "$HERMES_DIR/python3" python3 python; do
+  [ -n "$cand" ] || continue
+  if "$cand" -c "import yaml" >/dev/null 2>&1; then PY="$cand"; break; fi
+done
+[ -n "$PY" ] || { echo "❌ 找不到带 pyyaml 的 python；可执行: \"$HERMES_DIR/pip\" install pyyaml"; exit 1; }
+echo "python: $PY"
+
 API_KEY="$API_KEY" NAME="$NAME" BASE_URL="$BASE_URL" MODEL="$MODEL" MAX_TOKENS="$MAX_TOKENS" \
-python3 - "$CFG" <<'PY'
+"$PY" - "$CFG" <<'PY'
 import os, sys, yaml
 path = sys.argv[1]
 try:
