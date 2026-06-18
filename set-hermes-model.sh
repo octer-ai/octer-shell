@@ -26,3 +26,9 @@ hermes config set model.default            "$MODEL"
 hermes config set "$API_KEY_ENV" "$API_KEY"
 
 echo "✅ Hermes 已配置: ${PROVIDER_ID} → ${MODEL} @ ${BASE_URL}"
+
+# ── 启用：重启 gateway 让新模型生效 ──────────────────────
+echo "🔄 重启 hermes gateway..."
+hermes gateway restart
+hermes gateway status
+echo "✅ 已启用，当前默认模型: $(hermes config get model.default)"

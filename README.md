@@ -36,6 +36,7 @@
 1. 注册自定义 provider `octer`（`base_url` / `api_key_env` / `model_id`）
 2. 把当前模型切到该 provider，默认模型 `Octer-1.0-lite`
 3. 把 API Key 写入 `~/.hermes/.env`（变量名 `OCTER_LLM_API_KEY`）
+4. **重启 gateway 让新模型立即生效**，并打印当前默认模型
 
 ### 前置条件
 
