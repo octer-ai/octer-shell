@@ -114,5 +114,18 @@ echo "── 当前配置 ──"
 hermes config show | grep -iE "Model:|provider|reasoning" || true
 
 echo
-echo "🧪 自测一次: hermes -z \"你好\""
-hermes -z "你好" || echo "⚠️ 自测失败，检查 API Key / base_url（hermes config show）"
+echo "🧪 自测(最多等 60s): hermes -z \"你好\""
+TIMEOUT_BIN=""
+command -v timeout  >/dev/null 2>&1 && TIMEOUT_BIN=timeout
+command -v gtimeout >/dev/null 2>&1 && TIMEOUT_BIN=gtimeout
+if [ -n "$TIMEOUT_BIN" ]; then
+  "$TIMEOUT_BIN" 60 hermes -z "你好" \
+    || echo "⚠️ 自测超时/失败。配置已写好；卡住多半是端点没响应，手动排查见下方提示。"
+else
+  echo "（本机无 timeout 命令，跳过自动自测）手动测: hermes -z \"你好\"（卡住可 Ctrl-C）"
+fi
+echo
+echo "若 hermes -z 一直卡住，直接 curl 端点看是不是端点本身的问题："
+echo "  curl -sS ${BASE_URL}/chat/completions \\"
+echo "    -H \"Authorization: Bearer <KEY>\" -H \"Content-Type: application/json\" \\"
+echo "    -d '{\"model\":\"${MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"你好\"}]}'"
