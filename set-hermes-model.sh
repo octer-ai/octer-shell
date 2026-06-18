@@ -40,4 +40,5 @@ echo "── 当前配置（hermes config show | grep Model）──"
 hermes config show | grep -iE "Model:|provider|reasoning" || true
 
 echo
-echo "验证: hermes chat（进入后输入“你好”），或一次性: hermes -z \"你好\""
+echo "🧪 自测一次: hermes -z \"你好\""
+hermes -z "你好" || echo "⚠️ 自测失败，检查 API Key / base_url（hermes config show）"
