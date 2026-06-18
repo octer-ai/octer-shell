@@ -78,4 +78,6 @@ hermes gateway status
 
 echo "当前配置（grep model）："
 hermes config show | grep -iE "provider|model|reasoning|octer" || true
+echo
+echo "验证: hermes chat（进入后输入“你好”），或一次性: hermes -z \"你好\""
 echo "✅ 清除完成。如需恢复 Octer 模型，重新跑 ./set-hermes-model.sh <API_KEY>"

@@ -38,3 +38,6 @@ hermes gateway status
 echo "── 当前配置（hermes config show | grep Model）──"
 # hermes config 没有 get 子命令，用 show 查看
 hermes config show | grep -iE "Model:|provider|reasoning" || true
+
+echo
+echo "验证: hermes chat（进入后输入“你好”），或一次性: hermes -z \"你好\""
