@@ -1,42 +1,90 @@
 #!/usr/bin/env bash
 # 配置 Hermes Agent 使用 Octer 自定义大模型，并选中它。
 # 用法: ./set-hermes-model.sh <API_KEY>
+#
+# 关键：Hermes 取凭证时只认「命名的 custom provider」(custom_providers 列表条目)，
+# 光设 model.* 会报 "No LLM provider configured"。本脚本按 hermes 自己 _save_custom_provider
+# 的结构，往 config.yaml 写 custom_providers 列表条目 + model 块。
 set -euo pipefail
 
 API_KEY="${1:?用法: $0 <API_KEY>}"
 
 # ── 固定部分 ────────────────────────────────────────────
+NAME="Octer"
 BASE_URL="https://octer.ai/api/llm"   # 接口地址（正式）
 MODEL="Octer-1.0-lite"                # 模型名称
-PROVIDER_ID="octer"                   # 自定义 provider 标识
 MAX_TOKENS="65536"
 # ────────────────────────────────────────────────────────
 
-# 选中 Octer 自定义模型（OpenAI 兼容协议）。
-# Hermes 这版把模型配置全部平铺在 model.* 下，没有 custom_providers 块。
-hermes config set model.provider           custom
-hermes config set model.base_url           "$BASE_URL"
-hermes config set model.custom_provider_id "$PROVIDER_ID"
-hermes config set model.default            "$MODEL"
-hermes config set model.max_tokens         "$MAX_TOKENS"
+command -v hermes >/dev/null 2>&1 || { echo "❌ 未找到 hermes CLI（需在装了 hermes 的机器执行）"; exit 1; }
 
-# API Key —— custom 端点走 OpenAI 兼容鉴权。两处都写做兜底，确保被读到。
-hermes config set model.api_key   "$API_KEY"
-hermes config set OPENAI_API_KEY  "$API_KEY"
+CFG="$(hermes config path)"
+echo "config: $CFG"
+[ -f "$CFG" ] && cp -f "$CFG" "${CFG}.bak.$(date +%s)"
 
-# Octer 模型不支持 fast 模式 —— 关闭 reasoning_effort，避免发送相关参数。
-hermes config set agent.reasoning_effort none
+API_KEY="$API_KEY" NAME="$NAME" BASE_URL="$BASE_URL" MODEL="$MODEL" MAX_TOKENS="$MAX_TOKENS" \
+python3 - "$CFG" <<'PY'
+import os, sys, yaml
+path = sys.argv[1]
+try:
+    with open(path) as f:
+        cfg = yaml.safe_load(f) or {}
+except FileNotFoundError:
+    cfg = {}
 
-echo "✅ 已配置并选中: ${PROVIDER_ID} → ${MODEL} @ ${BASE_URL}（已关闭 fast/reasoning）"
+NAME = os.environ["NAME"]
+BASE = os.environ["BASE_URL"].rstrip("/")
+KEY  = os.environ["API_KEY"]
+MODEL = os.environ["MODEL"]
+MAXT = int(os.environ["MAX_TOKENS"])
+
+# 1) custom_providers 列表条目（按 base_url 去重，命中则更新）
+cps = cfg.get("custom_providers")
+if not isinstance(cps, list):
+    cps = []
+entry = None
+for e in cps:
+    if isinstance(e, dict) and str(e.get("base_url", "")).rstrip("/") == BASE:
+        entry = e; break
+if entry is None:
+    entry = {}
+    cps.append(entry)
+entry.update({"name": NAME, "base_url": BASE, "api_key": KEY, "model": MODEL})
+cfg["custom_providers"] = cps
+
+# 2) model 块：选中该 custom 端点
+m = cfg.get("model")
+if not isinstance(m, dict):
+    m = {}
+m.update({
+    "provider": "custom",
+    "base_url": BASE,
+    "default": MODEL,
+    "api_key": KEY,
+    "max_tokens": MAXT,
+})
+cfg["model"] = m
+
+# 3) Octer 不支持 fast 模式 —— 关闭 reasoning
+a = cfg.get("agent")
+if not isinstance(a, dict):
+    a = {}
+a["reasoning_effort"] = "none"
+cfg["agent"] = a
+
+with open(path, "w") as f:
+    yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
+print("✅ config.yaml 已写入 custom_providers[Octer] + model 块")
+PY
+
+echo "✅ 已配置并选中: ${NAME} → ${MODEL} @ ${BASE_URL}（已关闭 fast/reasoning）"
 
 # ── 启用：启动/刷新 gateway 让新模型生效 ─────────────────
-# 改过 config 后 launchd service 定义会变 stale，必须用 start 重新生成（restart 不会）。
 echo "🔄 启动 hermes gateway..."
 hermes gateway start
 hermes gateway status
 
-echo "── 当前配置（hermes config show | grep Model）──"
-# hermes config 没有 get 子命令，用 show 查看
+echo "── 当前配置 ──"
 hermes config show | grep -iE "Model:|provider|reasoning" || true
 
 echo
