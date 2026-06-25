@@ -1,78 +1,120 @@
 # octer-shell
 
-配置 [Hermes Agent](https://github.com/nousresearch/hermes-agent) 使用 [Octer.ai](https://octer.ai) 自定义大模型的 shell 脚本。
+**English** · [中文](README.zh.md)
+
+Shell scripts that point [Hermes Agent](https://github.com/nousresearch/hermes-agent) at an [Octer.ai](https://octer.ai) custom LLM — you only supply an API key, everything else is fixed.
+
+There are two scripts plus a cleanup helper:
+
+| Script | Platform | What it does |
+|--------|----------|--------------|
+| `set-hermes-model.sh` | Linux / macOS | Switch Hermes Agent to the Octer OpenAI-compatible endpoint |
+| `set-hermes-model.ps1` | Windows / PowerShell | Same behavior as the `.sh`, written for PowerShell |
+| `clear-hermes-model.sh` | Linux / macOS | Remove all Octer-related config and restore the default |
 
 ## set-hermes-model.sh
 
-把 Hermes Agent 的 LLM 切换到 Octer 的 OpenAI 兼容接口，只需传入 API Key。
+Switch Hermes Agent's LLM to Octer's OpenAI-compatible API. The **only** argument is your API key.
 
-### 用法
+### Usage
 
 ```bash
 ./set-hermes-model.sh <API_KEY>
 ```
 
-示例：
+Example:
 
 ```bash
 ./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx
 ```
 
-### 固定配置
+### Fixed configuration
 
-| 项目 | 值 |
-|------|-----|
-| 接口地址 | `https://octer.ai/api/llm` |
-| API 协议类型 | OpenAI 兼容协议（custom provider） |
-| 模型名称 | `Octer-1.0-lite` |
-| Provider 标识 | `octer` |
+| Item | Value |
+|------|-------|
+| Endpoint | `https://octer.ai/api/llm` |
+| Protocol | OpenAI-compatible (custom provider) |
+| Model | `Octer-1.0-lite` |
+| Provider slug | `octer` |
 
-只有 **API Key** 是参数，其余固定。
+Only the **API key** is a parameter; everything else is hard-coded.
 
-### 脚本做了什么
+### What the script does
 
-基于 `hermes config set`，模型配置全部平铺在 `model.*` 下（这版 Hermes 没有 `custom_providers` 块）：
+It edits `config.yaml` directly (resolved via `hermes config path`) and writes both a named custom provider and the active model selection — Hermes only reads credentials from a **named** `custom_providers` entry, so setting `model.*` alone yields `No LLM provider configured`:
 
-1. 选中 custom 模型：`model.provider=custom`、`model.base_url`、`model.custom_provider_id=octer`、`model.default=Octer-1.0-lite`、`model.max_tokens=65536`
-2. 写 API Key：同时设 `model.api_key` 和 `OPENAI_API_KEY` 兜底
-3. 关闭 `agent.reasoning_effort`（Octer 模型不支持 fast 模式）
-4. **`hermes gateway start` 让新模型立即生效**（改配置后 service 会 stale，必须 `start` 重新生成，`restart` 不行），并打印当前配置
+1. **Custom provider entry** — adds/updates a `custom_providers` list item (`name: Octer`, `base_url`, `api_key`, `model`), de-duplicated by `base_url`.
+2. **Select the model** — sets the `model` block: `provider=octer` (the provider slug, *not* the literal `custom`), `base_url`, `default=Octer-1.0-lite`, `api_key`, `max_tokens=65536`.
+3. **Disable fast mode** — sets `agent.reasoning_effort=none`, since the Octer model doesn't support reasoning/fast mode.
+4. **Apply** — runs `hermes gateway start` so the change takes effect immediately (the service goes stale after a config edit and must be re-generated with `start`; `restart` is not enough), prints the current config, then runs a self-test (`hermes -z "你好"`, capped at 60s).
 
-### 前置条件
+A timestamped backup of `config.yaml` is written before any change.
 
-- 已安装 `hermes` CLI 并可在 `PATH` 中调用
-- 拥有 Octer.ai API Key（在 [octer.ai/workspace](https://octer.ai/workspace) → Me → Settings → API Keys 创建）
+### Prerequisites
 
-## set-hermes-model.ps1（Windows / PowerShell）
+- `hermes` CLI installed and available on `PATH`.
+- An Octer.ai API key — create one at [octer.ai/workspace](https://octer.ai/workspace) → **Me → Settings → API Keys**.
+- Python 3 with `pyyaml`. The script auto-selects a suitable interpreter (preferring Hermes' own venv, which always has `pyyaml`) and falls back to `pip install --user pyyaml` if needed.
 
-Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：同样往 `config.yaml` 写 `custom_providers[Octer]` 列表条目 + `model` 块、关闭 `agent.reasoning_effort`，再 `hermes gateway start` 并自测。
+## set-hermes-model.ps1 (Windows / PowerShell)
 
-### 用法
+Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes the `custom_providers[Octer]` entry + `model` block, disables `agent.reasoning_effort`, runs `hermes gateway start`, and self-tests.
+
+### Usage
 
 ```powershell
 .\set-hermes-model.ps1 <API_KEY>
 ```
 
-示例：
+Example:
 
 ```powershell
 .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx
 ```
 
-若系统禁止运行脚本（报“无法加载……在此系统上禁止运行脚本”），用：
+If the system blocks scripts (`running scripts is disabled on this system`), run:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 ```
 
-### 与 .sh 版的差异（仅实现细节，写入结果一致）
+### Differences from the .sh version (implementation only — the written result is identical)
 
-- 找 python：优先 hermes 自带 venv 的 `hermes-agent\venv\Scripts\python.exe`，否则依次试 `py -3` / `python` / `python3`；都没 `pyyaml` 时用 `pip install --user pyyaml` 兜底
-- 60s 自测超时用 PowerShell 后台 job 实现（Windows 没有 `timeout <命令>` 这种语义）
-- 临时改写脚本以 UTF-8 无 BOM 写入，避免中文注释/输出乱码
+- **Python discovery** — prefers Hermes' bundled venv (`hermes-agent\venv\Scripts\python.exe`), then tries `py -3` / `python` / `python3`; if none has `pyyaml`, falls back to `pip install --user pyyaml`.
+- **60s self-test timeout** — implemented with a background PowerShell job (Windows has no `timeout <command>` semantics).
+- **Encoding** — writes the temporary helper as UTF-8 without BOM to avoid garbled non-ASCII comments/output.
 
-### 前置条件（Windows）
+### Prerequisites (Windows)
 
-- 已安装 `hermes` CLI 且在 `PATH` 中（`hermes` 可直接调用）
-- 已装 Python 3（`py -3` 或 `python` 可用）；脚本会自动查找/安装 `pyyaml`
-- 拥有 Octer.ai API Key
+- `hermes` CLI installed and on `PATH` (callable as `hermes`).
+- Python 3 (`py -3` or `python`); the script finds/installs `pyyaml` automatically.
+- An Octer.ai API key.
+
+## clear-hermes-model.sh
+
+Remove the Octer custom-model configuration and restore Hermes to its default. Hermes has no `config unset/remove`, so the script edits `config.yaml` directly (with a backup).
+
+### Usage
+
+```bash
+./clear-hermes-model.sh
+```
+
+It strips every Octer-related entry while leaving other providers (e.g. `qwen`) intact:
+
+1. Drops the `model` override keys when `model.base_url` points at Octer.
+2. Removes any `providers` / `custom_providers` entries whose key name or `api`/`base_url` mentions `octer`.
+3. Removes the `agent.reasoning_effort` override.
+4. Deletes `OCTER_LLM_API_KEY` from the `.env` file if present, then runs `hermes gateway start` to apply.
+
+To re-enable the Octer model afterwards, just run `./set-hermes-model.sh <API_KEY>` again.
+
+## Troubleshooting
+
+If `hermes -z` hangs, hit the endpoint directly with `curl` to check whether the endpoint itself is the problem:
+
+```bash
+curl -sS https://octer.ai/api/llm/chat/completions \
+  -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" \
+  -d '{"model":"Octer-1.0-lite","messages":[{"role":"user","content":"hi"}]}'
+```
