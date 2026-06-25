@@ -35,16 +35,16 @@ openclaw models status 2>/dev/null || true
 
 # ── 自测（最多等 60s，不通过不影响配置）──────────────────
 echo
-echo "🧪 自测(最多等 60s): openclaw agent \"你好\""
+echo "🧪 自测(最多等 60s): openclaw agent --agent main -m \"你好\""
 TIMEOUT_BIN=""
 command -v timeout  >/dev/null 2>&1 && TIMEOUT_BIN=timeout
 command -v gtimeout >/dev/null 2>&1 && TIMEOUT_BIN=gtimeout
 if [ -n "$TIMEOUT_BIN" ]; then
-  "$TIMEOUT_BIN" 60 openclaw agent "你好" \
-    || echo "⚠️ 自测未通过（不影响配置）。手动验证: openclaw agent \"你好\" 或 openclaw chat；参数不符见 openclaw agent --help"
+  "$TIMEOUT_BIN" 60 openclaw agent --agent main -m "你好" \
+    || echo "⚠️ 自测未通过（不影响配置）。手动验证: openclaw agent --agent main -m \"你好\" 或 openclaw chat"
 else
-  openclaw agent "你好" \
-    || echo "⚠️ 自测未通过（不影响配置）。手动验证: openclaw agent \"你好\" 或 openclaw chat；参数不符见 openclaw agent --help"
+  openclaw agent --agent main -m "你好" \
+    || echo "⚠️ 自测未通过（不影响配置）。手动验证: openclaw agent --agent main -m \"你好\" 或 openclaw chat"
 fi
 
 echo

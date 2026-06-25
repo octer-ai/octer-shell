@@ -55,13 +55,13 @@ try { & openclaw models status } catch {}
 
 # ── 自测（最多等 60s，不通过不影响配置）──────────────────
 Write-Host ""
-Write-Host '* 自测(最多等 60s): openclaw agent "你好"'
-$job = Start-Job -ScriptBlock { & openclaw agent "你好" 2>&1 }
+Write-Host '* 自测(最多等 60s): openclaw agent --agent main -m "你好"'
+$job = Start-Job -ScriptBlock { & openclaw agent --agent main -m "你好" 2>&1 }
 if (Wait-Job $job -Timeout 60) {
   Receive-Job $job
 } else {
   Stop-Job $job
-  Write-Host '! 自测未通过(不影响配置)。手动验证: openclaw agent "你好" 或 openclaw chat;参数不符见 openclaw agent --help' -ForegroundColor Yellow
+  Write-Host '! 自测未通过(不影响配置)。手动验证: openclaw agent --agent main -m "你好" 或 openclaw chat' -ForegroundColor Yellow
 }
 Remove-Job $job -Force -ErrorAction SilentlyContinue
 

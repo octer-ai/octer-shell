@@ -112,7 +112,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://octer.ai/api/llm","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"Octer-1.0-lite","name":"Octer-1.0-lite"}]}`。
 2. **选默认模型** —— `openclaw models set octer/Octer-1.0-lite`。
-3. **生效 & 自测** —— `openclaw gateway restart`,打印 `openclaw models status`,再跑一次容错自测(`openclaw agent "你好"`,最多 60s,不通过不影响配置)—— 对齐 Hermes 脚本的 `hermes -z` 检查。
+3. **生效 & 自测** —— `openclaw gateway restart`,打印 `openclaw models status`,再跑一次容错自测(`openclaw agent --agent main -m "你好"`,最多 60s,不通过不影响配置)—— 对齐 Hermes 脚本的 `hermes -z` 检查。
 
 ### 前置条件
 

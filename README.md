@@ -114,7 +114,7 @@ Switch OpenClaw to the Octer custom model — the same idea as the Hermes script
 
 1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://octer.ai/api/llm","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"Octer-1.0-lite","name":"Octer-1.0-lite"}]}`.
 2. **Select the default model** — `openclaw models set octer/Octer-1.0-lite`.
-3. **Apply & self-test** — `openclaw gateway restart`, print `openclaw models status`, then run a non-fatal self-test (`openclaw agent "你好"`, capped at 60s) — mirroring the Hermes script's `hermes -z` check.
+3. **Apply & self-test** — `openclaw gateway restart`, print `openclaw models status`, then run a non-fatal self-test (`openclaw agent --agent main -m "你好"`, capped at 60s) — mirroring the Hermes script's `hermes -z` check.
 
 ### Prerequisites
 
