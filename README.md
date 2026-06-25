@@ -13,6 +13,8 @@ There are two scripts plus a cleanup helper:
 | `set-openclaw-model.sh` | Linux / macOS | Switch OpenClaw to the Octer custom model (OpenAI-compatible) |
 | `set-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw `.sh`, written for PowerShell |
 | `clear-hermes-model.sh` | Linux / macOS | Remove all Octer-related config and restore the default |
+| `clear-openclaw-model.sh` | Linux / macOS | Remove the Octer model config from OpenClaw and restore the default |
+| `clear-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw clear `.sh`, written for PowerShell |
 
 ## set-hermes-model.sh
 
@@ -141,6 +143,31 @@ It strips every Octer-related entry while leaving other providers (e.g. `qwen`) 
 4. Deletes `OCTER_LLM_API_KEY` from the `.env` file if present, then runs `hermes gateway start` to apply.
 
 To re-enable the Octer model afterwards, just run `./set-hermes-model.sh <API_KEY>` again.
+
+## clear-openclaw-model.sh / clear-openclaw-model.ps1
+
+The OpenClaw counterpart of `clear-hermes-model.sh`: remove the Octer custom-model config and restore OpenClaw to its default. OpenClaw stores config in `~/.openclaw/openclaw.json`; the script edits it directly (with a backup).
+
+### Usage
+
+```bash
+# Linux / macOS
+./clear-openclaw-model.sh
+```
+
+```powershell
+# Windows / PowerShell
+.\clear-openclaw-model.ps1
+```
+
+### What it does
+
+1. Backs up `~/.openclaw/openclaw.json`, then — when `model.baseURL` points at Octer — drops the `model.*` keys (`provider` / `baseURL` / `apiKey` / `model`) written by `set-openclaw-model.sh`, leaving the rest of the config intact.
+2. Runs `openclaw gateway restart` to apply, then prints the current model config.
+
+After clearing, pick a model again with `openclaw onboard` (or `openclaw setup`). To re-enable the Octer model, just run `./set-openclaw-model.sh <API_KEY>` again.
+
+> ⚠️ **Placeholder:** same caveat as `set-openclaw-model.sh` — OpenClaw isn't installed on the authoring machine, so the exact config keys aren't finalized. If the real schema differs (e.g. `providers.octer.*` / `llm.*`), edit only the key check in the script.
 
 ## Troubleshooting
 

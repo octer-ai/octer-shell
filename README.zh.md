@@ -11,6 +11,8 @@
 | `set-openclaw-model.sh` | Linux / macOS | 把 OpenClaw 切到 Octer 自定义大模型(OpenAI 兼容) |
 | `set-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw `.sh` 一致的 PowerShell 版 |
 | `clear-hermes-model.sh` | Linux / macOS | 清除 Octer 相关配置,恢复默认 |
+| `clear-openclaw-model.sh` | Linux / macOS | 清除 OpenClaw 里的 Octer 模型配置,恢复默认 |
+| `clear-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw 清除 `.sh` 一致的 PowerShell 版 |
 
 ## set-hermes-model.sh
 
@@ -139,6 +141,31 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 4. 若 `.env` 里有 `OCTER_LLM_API_KEY` 则删掉，再 `hermes gateway start` 生效。
 
 之后想恢复 Octer 模型，重新跑 `./set-hermes-model.sh <API_KEY>` 即可。
+
+## clear-openclaw-model.sh / clear-openclaw-model.ps1
+
+`clear-hermes-model.sh` 的 OpenClaw 版：清除 Octer 自定义大模型配置，把 OpenClaw 恢复到默认。OpenClaw 配置在 `~/.openclaw/openclaw.json`，脚本直接改文件（会先备份）。
+
+### 用法
+
+```bash
+# Linux / macOS
+./clear-openclaw-model.sh
+```
+
+```powershell
+# Windows / PowerShell
+.\clear-openclaw-model.ps1
+```
+
+### 脚本做了什么
+
+1. 先备份 `~/.openclaw/openclaw.json`，当 `model.baseURL` 指向 Octer 时，清掉 `set-openclaw-model.sh` 写入的 `model.*`（`provider` / `baseURL` / `apiKey` / `model`），其余配置保留。
+2. 跑 `openclaw gateway restart` 生效，并打印当前模型配置。
+
+清除后用 `openclaw onboard`（或 `openclaw setup`）重新选模型；想恢复 Octer 模型，重新跑 `./set-openclaw-model.sh <API_KEY>` 即可。
+
+> ⚠️ **占位说明**：同 `set-openclaw-model.sh`——编写机器上未安装 openclaw，确切 config key 尚未最终确认。若实际 schema 不同（如 `providers.octer.*` / `llm.*`），只改脚本里的 key 判断即可。
 
 ## 排查
 
