@@ -53,6 +53,25 @@ Write-Host "~ 重启 gateway 让变更生效..."
 Write-Host "-- 当前模型状态 --"
 try { & openclaw models status } catch {}
 
+# ── 自测（最多等 60s，不通过不影响配置）──────────────────
+Write-Host ""
+Write-Host '* 自测(最多等 60s): openclaw agent "你好"'
+$job = Start-Job -ScriptBlock { & openclaw agent "你好" 2>&1 }
+if (Wait-Job $job -Timeout 60) {
+  Receive-Job $job
+} else {
+  Stop-Job $job
+  Write-Host '! 自测未通过(不影响配置)。手动验证: openclaw agent "你好" 或 openclaw chat;参数不符见 openclaw agent --help' -ForegroundColor Yellow
+}
+Remove-Job $job -Force -ErrorAction SilentlyContinue
+
 Write-Host ""
 Write-Host "OK 已把 OpenClaw 切到: $ModelId @ $BaseUrl" -ForegroundColor Green
 Write-Host "   没有 Key? 在 https://octer.ai/workspace -> Me -> Settings -> API Keys 创建"
+
+$hint = @"
+若自测卡住/失败，直接 curl 端点看是不是端点本身的问题（PowerShell 用 curl.exe，单行）：
+  curl.exe -sS $BaseUrl/chat/completions -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" -d '{"model":"$Model","messages":[{"role":"user","content":"你好"}]}'
+"@
+Write-Host ""
+Write-Host $hint

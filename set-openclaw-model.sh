@@ -33,6 +33,25 @@ openclaw gateway restart
 echo "── 当前模型状态 ──"
 openclaw models status 2>/dev/null || true
 
+# ── 自测（最多等 60s，不通过不影响配置）──────────────────
+echo
+echo "🧪 自测(最多等 60s): openclaw agent \"你好\""
+TIMEOUT_BIN=""
+command -v timeout  >/dev/null 2>&1 && TIMEOUT_BIN=timeout
+command -v gtimeout >/dev/null 2>&1 && TIMEOUT_BIN=gtimeout
+if [ -n "$TIMEOUT_BIN" ]; then
+  "$TIMEOUT_BIN" 60 openclaw agent "你好" \
+    || echo "⚠️ 自测未通过（不影响配置）。手动验证: openclaw agent \"你好\" 或 openclaw chat；参数不符见 openclaw agent --help"
+else
+  openclaw agent "你好" \
+    || echo "⚠️ 自测未通过（不影响配置）。手动验证: openclaw agent \"你好\" 或 openclaw chat；参数不符见 openclaw agent --help"
+fi
+
 echo
 echo "✅ 已把 OpenClaw 切到: ${MODEL_ID} @ ${BASE_URL}"
 echo "🔑 没有 Key? 在 https://octer.ai/workspace → Me → Settings → API Keys 创建"
+echo
+echo "若自测卡住/失败，直接 curl 端点看是不是端点本身的问题："
+echo "  curl -sS ${BASE_URL}/chat/completions \\"
+echo "    -H \"Authorization: Bearer <KEY>\" -H \"Content-Type: application/json\" \\"
+echo "    -d '{\"model\":\"${MODEL}\",\"messages\":[{\"role\":\"user\",\"content\":\"你好\"}]}'"
