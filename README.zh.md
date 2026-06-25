@@ -8,6 +8,8 @@
 |------|------|------|
 | `set-hermes-model.sh` | Linux / macOS | 把 Hermes Agent 切到 Octer 的 OpenAI 兼容接口 |
 | `set-hermes-model.ps1` | Windows / PowerShell | 行为与 `.sh` 一致的 PowerShell 版 |
+| `set-openclaw-model.sh` | Linux / macOS | 把 OpenClaw 切到 Octer 自定义大模型(OpenAI 兼容) |
+| `set-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw `.sh` 一致的 PowerShell 版 |
 | `clear-hermes-model.sh` | Linux / macOS | 清除 Octer 相关配置,恢复默认 |
 
 ## set-hermes-model.sh
@@ -87,6 +89,37 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 - 已安装 `hermes` CLI 且在 `PATH` 中（`hermes` 可直接调用）。
 - 已装 Python 3（`py -3` 或 `python` 可用）；脚本会自动查找/安装 `pyyaml`。
 - 拥有 Octer.ai API Key。
+
+## set-openclaw-model.sh / set-openclaw-model.ps1
+
+把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://octer.ai/api/llm`、模型 `Octer-1.0-lite`、OpenAI 兼容、provider slug `octer`。
+
+> ⚠️ **占位说明**:编写机器上未安装 openclaw,其自定义模型的确切 config key 尚未最终确认。脚本按 Hermes 模式用 `model.*`;若 OpenClaw 实际 schema 不同(如 `providers.octer.*` / `llm.*`),只改 `config set` 那几行即可。
+
+### 用法
+
+```bash
+# Linux / macOS
+./set-openclaw-model.sh <API_KEY>
+```
+
+```powershell
+# Windows / PowerShell
+.\set-openclaw-model.ps1 <API_KEY>
+```
+
+### 脚本做了什么
+
+1. `openclaw config set model.provider octer`
+2. `openclaw config set model.baseURL https://octer.ai/api/llm`
+3. `openclaw config set model.apiKey <API_KEY>`
+4. `openclaw config set model.model Octer-1.0-lite`
+5. `openclaw gateway restart` —— 生效,并打印当前模型配置。
+
+### 前置条件
+
+- 已安装 `openclaw` CLI 并可在 `PATH` 中调用。
+- 拥有 Octer.ai API Key(在 [octer.ai/workspace](https://octer.ai/workspace) → Me → Settings → API Keys 创建)。
 
 ## clear-hermes-model.sh
 

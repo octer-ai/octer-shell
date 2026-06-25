@@ -10,6 +10,8 @@ There are two scripts plus a cleanup helper:
 |--------|----------|--------------|
 | `set-hermes-model.sh` | Linux / macOS | Switch Hermes Agent to the Octer OpenAI-compatible endpoint |
 | `set-hermes-model.ps1` | Windows / PowerShell | Same behavior as the `.sh`, written for PowerShell |
+| `set-openclaw-model.sh` | Linux / macOS | Switch OpenClaw to the Octer custom model (OpenAI-compatible) |
+| `set-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw `.sh`, written for PowerShell |
 | `clear-hermes-model.sh` | Linux / macOS | Remove all Octer-related config and restore the default |
 
 ## set-hermes-model.sh
@@ -89,6 +91,37 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 - `hermes` CLI installed and on `PATH` (callable as `hermes`).
 - Python 3 (`py -3` or `python`); the script finds/installs `pyyaml` automatically.
 - An Octer.ai API key.
+
+## set-openclaw-model.sh / set-openclaw-model.ps1
+
+Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://octer.ai/api/llm`, model `Octer-1.0-lite`, OpenAI-compatible, provider slug `octer`.
+
+> ⚠️ **Placeholder:** OpenClaw isn't installed on the authoring machine, so the exact config key paths aren't finalized. The scripts use `model.*` (modeled on Hermes); if OpenClaw's real schema differs (e.g. `providers.octer.*` / `llm.*`), edit only the `config set` lines.
+
+### Usage
+
+```bash
+# Linux / macOS
+./set-openclaw-model.sh <API_KEY>
+```
+
+```powershell
+# Windows / PowerShell
+.\set-openclaw-model.ps1 <API_KEY>
+```
+
+### What the script does
+
+1. `openclaw config set model.provider octer`
+2. `openclaw config set model.baseURL https://octer.ai/api/llm`
+3. `openclaw config set model.apiKey <API_KEY>`
+4. `openclaw config set model.model Octer-1.0-lite`
+5. `openclaw gateway restart` — apply, then print the current model config.
+
+### Prerequisites
+
+- `openclaw` CLI installed and on `PATH`.
+- An Octer.ai API key — create one at [octer.ai/workspace](https://octer.ai/workspace) → **Me → Settings → API Keys**.
 
 ## clear-hermes-model.sh
 
