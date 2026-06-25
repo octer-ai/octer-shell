@@ -96,9 +96,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 ## set-openclaw-model.sh / set-openclaw-model.ps1
 
-Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://octer.ai/api/llm`, model `Octer-1.0-lite`, OpenAI-compatible, provider slug `octer`.
-
-> ⚠️ **Placeholder:** OpenClaw isn't installed on the authoring machine, so the exact config key paths aren't finalized. The scripts use `model.*` (modeled on Hermes); if OpenClaw's real schema differs (e.g. `providers.octer.*` / `llm.*`), edit only the `config set` lines.
+Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://octer.ai/api/llm`, model `Octer-1.0-lite`, OpenAI-compatible adapter (`openai-completions`), provider slug `octer`.
 
 ### Usage
 
@@ -114,11 +112,9 @@ Switch OpenClaw to the Octer custom model — the same idea as the Hermes script
 
 ### What the script does
 
-1. `openclaw config set model.provider octer`
-2. `openclaw config set model.baseURL https://octer.ai/api/llm`
-3. `openclaw config set model.apiKey <API_KEY>`
-4. `openclaw config set model.model Octer-1.0-lite`
-5. `openclaw gateway restart` — apply, then print the current model config.
+1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://octer.ai/api/llm","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"Octer-1.0-lite","name":"Octer-1.0-lite"}]}`.
+2. **Select the default model** — `openclaw models set octer/Octer-1.0-lite`.
+3. **Apply** — `openclaw gateway restart`, then print `openclaw models status`.
 
 ### Prerequisites
 
@@ -146,7 +142,7 @@ To re-enable the Octer model afterwards, just run `./set-hermes-model.sh <API_KE
 
 ## clear-openclaw-model.sh / clear-openclaw-model.ps1
 
-The OpenClaw counterpart of `clear-hermes-model.sh`: remove the Octer custom-model config and restore OpenClaw to its default. OpenClaw stores config in `~/.openclaw/openclaw.json`; the script edits it directly (with a backup).
+The OpenClaw counterpart of `clear-hermes-model.sh`: remove the Octer provider and restore OpenClaw to its default, via `openclaw config unset`.
 
 ### Usage
 
@@ -162,12 +158,10 @@ The OpenClaw counterpart of `clear-hermes-model.sh`: remove the Octer custom-mod
 
 ### What it does
 
-1. Backs up `~/.openclaw/openclaw.json`, then — when `model.baseURL` points at Octer — drops the `model.*` keys (`provider` / `baseURL` / `apiKey` / `model`) written by `set-openclaw-model.sh`, leaving the rest of the config intact.
-2. Runs `openclaw gateway restart` to apply, then prints the current model config.
+1. `openclaw config unset models.providers.octer` — remove the provider written by `set-openclaw-model.sh` (other providers untouched).
+2. `openclaw gateway restart`, then print `openclaw models status`.
 
-After clearing, pick a model again with `openclaw onboard` (or `openclaw setup`). To re-enable the Octer model, just run `./set-openclaw-model.sh <API_KEY>` again.
-
-> ⚠️ **Placeholder:** same caveat as `set-openclaw-model.sh` — OpenClaw isn't installed on the authoring machine, so the exact config keys aren't finalized. If the real schema differs (e.g. `providers.octer.*` / `llm.*`), edit only the key check in the script.
+If your default model still points at `octer`, pick another with `openclaw models set <model>` (or `openclaw onboard`). To re-enable the Octer model, run `./set-openclaw-model.sh <API_KEY>` again.
 
 ## Troubleshooting
 

@@ -94,9 +94,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 ## set-openclaw-model.sh / set-openclaw-model.ps1
 
-把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://octer.ai/api/llm`、模型 `Octer-1.0-lite`、OpenAI 兼容、provider slug `octer`。
-
-> ⚠️ **占位说明**:编写机器上未安装 openclaw,其自定义模型的确切 config key 尚未最终确认。脚本按 Hermes 模式用 `model.*`;若 OpenClaw 实际 schema 不同(如 `providers.octer.*` / `llm.*`),只改 `config set` 那几行即可。
+把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://octer.ai/api/llm`、模型 `Octer-1.0-lite`、OpenAI 兼容适配器(`openai-completions`)、provider slug `octer`。
 
 ### 用法
 
@@ -112,11 +110,9 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 ### 脚本做了什么
 
-1. `openclaw config set model.provider octer`
-2. `openclaw config set model.baseURL https://octer.ai/api/llm`
-3. `openclaw config set model.apiKey <API_KEY>`
-4. `openclaw config set model.model Octer-1.0-lite`
-5. `openclaw gateway restart` —— 生效,并打印当前模型配置。
+1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://octer.ai/api/llm","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"Octer-1.0-lite","name":"Octer-1.0-lite"}]}`。
+2. **选默认模型** —— `openclaw models set octer/Octer-1.0-lite`。
+3. **生效** —— `openclaw gateway restart`,再打印 `openclaw models status`。
 
 ### 前置条件
 
@@ -144,7 +140,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 ## clear-openclaw-model.sh / clear-openclaw-model.ps1
 
-`clear-hermes-model.sh` 的 OpenClaw 版：清除 Octer 自定义大模型配置，把 OpenClaw 恢复到默认。OpenClaw 配置在 `~/.openclaw/openclaw.json`，脚本直接改文件（会先备份）。
+`clear-hermes-model.sh` 的 OpenClaw 版：删除 Octer provider,把 OpenClaw 恢复到默认 —— 用 `openclaw config unset`。
 
 ### 用法
 
@@ -160,12 +156,10 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 ### 脚本做了什么
 
-1. 先备份 `~/.openclaw/openclaw.json`，当 `model.baseURL` 指向 Octer 时，清掉 `set-openclaw-model.sh` 写入的 `model.*`（`provider` / `baseURL` / `apiKey` / `model`），其余配置保留。
-2. 跑 `openclaw gateway restart` 生效，并打印当前模型配置。
+1. `openclaw config unset models.providers.octer` —— 删掉 `set-openclaw-model.sh` 写入的 provider(其它 provider 不动)。
+2. `openclaw gateway restart`,再打印 `openclaw models status`。
 
-清除后用 `openclaw onboard`（或 `openclaw setup`）重新选模型；想恢复 Octer 模型，重新跑 `./set-openclaw-model.sh <API_KEY>` 即可。
-
-> ⚠️ **占位说明**：同 `set-openclaw-model.sh`——编写机器上未安装 openclaw，确切 config key 尚未最终确认。若实际 schema 不同（如 `providers.octer.*` / `llm.*`），只改脚本里的 key 判断即可。
+若默认模型仍指向 `octer`,用 `openclaw models set <model>`(或 `openclaw onboard`)重新选;想恢复 Octer 模型,重新跑 `./set-openclaw-model.sh <API_KEY>` 即可。
 
 ## 排查
 
