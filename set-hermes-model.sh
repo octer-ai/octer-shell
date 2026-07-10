@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 配置 Hermes Agent 使用 Octer 自定义大模型，并选中它。
 # 用法: ./set-hermes-model.sh <API_KEY> [MODEL]
-#   MODEL 可选，缺省 gpt-5.5
+#   MODEL 可选，缺省 gemini-3-flash-preview
 #
 # 关键：Hermes 取凭证时只认「命名的 custom provider」(custom_providers 列表条目)，
 # 光设 model.* 会报 "No LLM provider configured"。本脚本按 hermes 自己 _save_custom_provider
@@ -13,7 +13,7 @@ API_KEY="${1:?用法: $0 <API_KEY> [MODEL]}"
 # ── 固定部分 ────────────────────────────────────────────
 NAME="Octer"
 BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（正式）
-MODEL="${2:-gpt-5.5}"                 # 模型名称（可用第二个参数覆盖）
+MODEL="${2:-gemini-3-flash-preview}"                 # 模型名称（可用第二个参数覆盖）
 MAX_TOKENS="65536"
 # ────────────────────────────────────────────────────────
 

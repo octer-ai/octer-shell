@@ -27,8 +27,8 @@
 示例：
 
 ```bash
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # 用默认模型 gpt-5.5
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx gpt-5.5    # 显式指定模型
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # 用默认模型 gemini-3-flash-preview
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # 显式指定模型
 ```
 
 ### 固定配置
@@ -37,17 +37,17 @@
 |------|-----|
 | 接口地址 | `https://oclaw.octer.ai/v1` |
 | API 协议类型 | OpenAI 兼容协议（custom provider） |
-| 模型名称 | `gpt-5.5`（可用第二个参数覆盖） |
+| 模型名称 | `gemini-3-flash-preview`（可用第二个参数覆盖） |
 | Provider 标识 | `octer` |
 
-**API Key** 必填；**模型名称**是可选的第二个参数（缺省 `gpt-5.5`），其余固定。
+**API Key** 必填；**模型名称**是可选的第二个参数（缺省 `gemini-3-flash-preview`），其余固定。
 
 ### 脚本做了什么
 
 直接改 `config.yaml`(由 `hermes config path` 解析),同时写「命名的 custom provider」和「选中的 model」—— Hermes 取凭证时只认 `custom_providers` 列表里的命名条目,光设 `model.*` 会报 `No LLM provider configured`：
 
 1. **custom provider 条目**：往 `custom_providers` 列表加/更新一项（`name: Octer`、`base_url`、`api_key`、`model`），按 `base_url` 去重。
-2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=gpt-5.5`（或你传入的模型）、`api_key`、`max_tokens=65536`。
+2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=gemini-3-flash-preview`（或你传入的模型）、`api_key`、`max_tokens=65536`。
 3. **关闭 fast 模式**：设 `agent.reasoning_effort=none`（Octer 模型不支持 reasoning/fast 模式）。
 4. **生效**：跑 `hermes gateway start` 让新模型立即生效（改配置后 service 会 stale,必须 `start` 重新生成,`restart` 不行），打印当前配置,再自测一次（`hermes -z "你好"`,最多等 60s）。
 
@@ -72,8 +72,8 @@ Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一�
 示例：
 
 ```powershell
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # 用默认模型 gpt-5.5
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gpt-5.5    # 显式指定模型
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # 用默认模型 gemini-3-flash-preview
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # 显式指定模型
 ```
 
 若系统禁止运行脚本（报“无法加载……在此系统上禁止运行脚本”），用：
@@ -96,7 +96,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 
 ## set-openclaw-model.sh / set-openclaw-model.ps1
 
-把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://oclaw.octer.ai/v1`、OpenAI 兼容适配器(`openai-completions`)、provider slug `octer`。模型缺省 `gpt-5.5`,可用第二个参数覆盖。
+把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://oclaw.octer.ai/v1`、OpenAI 兼容适配器(`openai-completions`)、provider slug `octer`。模型缺省 `gemini-3-flash-preview`,可用第二个参数覆盖。
 
 ### 用法
 
@@ -113,14 +113,14 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 示例(Linux / macOS):
 
 ```bash
-./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # 用默认模型 gpt-5.5
-./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx gpt-5.5    # 显式指定模型
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # 用默认模型 gemini-3-flash-preview
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # 显式指定模型
 ```
 
 ### 脚本做了什么
 
-1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"gpt-5.5","name":"gpt-5.5"}]}`(`id`/`name` 跟随你传入的模型)。
-2. **选默认模型** —— `openclaw models set octer/gpt-5.5`。
+1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"gemini-3-flash-preview","name":"gemini-3-flash-preview"}]}`(`id`/`name` 跟随你传入的模型)。
+2. **选默认模型** —— `openclaw models set octer/gemini-3-flash-preview`。
 3. **生效 & 自测** —— `openclaw gateway restart`,打印 `openclaw models status`,再跑一次容错自测(`openclaw agent --agent main -m "你好"`,最多 60s,不通过不影响配置)—— 对齐 Hermes 脚本的 `hermes -z` 检查。
 
 ### 前置条件
@@ -177,5 +177,5 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 ```bash
 curl -sS https://oclaw.octer.ai/v1/chat/completions \
   -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" \
-  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"你好"}]}'
+  -d '{"model":"gemini-3-flash-preview","messages":[{"role":"user","content":"你好"}]}'
 ```

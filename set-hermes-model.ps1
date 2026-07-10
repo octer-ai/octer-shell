@@ -12,13 +12,13 @@
   Octer 的 API Key（evo_ 开头）。
 
 .PARAMETER Model
-  模型名称（可选，缺省 gpt-5.5）。
+  模型名称（可选，缺省 gemini-3-flash-preview）。
 
 .EXAMPLE
   .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx
 
 .EXAMPLE
-  .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gpt-5.5
+  .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview
 
 .NOTES
   若系统禁止运行脚本，用：
@@ -28,7 +28,7 @@ param(
   [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-hermes-model.ps1 <API_KEY> [MODEL]")]
   [string]$ApiKey,
   [Parameter(Mandatory = $false, Position = 1)]
-  [string]$Model = "gpt-5.5"
+  [string]$Model = "gemini-3-flash-preview"
 )
 
 $ErrorActionPreference = 'Stop'
