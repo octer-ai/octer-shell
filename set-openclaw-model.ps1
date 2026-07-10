@@ -4,22 +4,30 @@
 
 .DESCRIPTION
   与 set-openclaw-model.sh 等价：往 ~/.openclaw/openclaw.json 写自定义 provider
-  （models.providers.octer），选中 octer/Octer-1.0-lite 为默认，再重启 gateway。
+  （models.providers.octer），选中 octer/gpt-5.5（默认模型，可用第二个参数覆盖）为默认，再重启 gateway。
   全程走 openclaw 自带 CLI（config set 带 schema 校验）。
 
 .PARAMETER ApiKey
   Octer 的 API Key（evo_ 开头）。
 
+.PARAMETER Model
+  模型名称（可选，缺省 gpt-5.5）。
+
 .EXAMPLE
   .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx
 
+.EXAMPLE
+  .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx gpt-5.5
+
 .NOTES
   若系统禁止运行脚本，用：
-    powershell -ExecutionPolicy Bypass -File .\set-openclaw-model.ps1 <API_KEY>
+    powershell -ExecutionPolicy Bypass -File .\set-openclaw-model.ps1 <API_KEY> [MODEL]
 #>
 param(
-  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-openclaw-model.ps1 <API_KEY>")]
-  [string]$ApiKey
+  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-openclaw-model.ps1 <API_KEY> [MODEL]")]
+  [string]$ApiKey,
+  [Parameter(Mandatory = $false, Position = 1)]
+  [string]$Model = "gpt-5.5"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -27,7 +35,6 @@ $ErrorActionPreference = 'Stop'
 # ── 固定部分 ────────────────────────────────────────────
 $Provider = "octer"
 $BaseUrl  = "https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
-$Model    = "gpt-5.5"                    # 模型名称
 $ModelId  = "$Provider/$Model"           # model id 形如 provider/model
 # ────────────────────────────────────────────────────────
 

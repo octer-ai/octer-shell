@@ -2,7 +2,7 @@
 
 **English** · [中文](README.zh.md)
 
-Shell scripts that point [Hermes Agent](https://github.com/nousresearch/hermes-agent) at an [Octer.ai](https://octer.ai) custom LLM — you only supply an API key, everything else is fixed.
+Shell scripts that point [Hermes Agent](https://github.com/nousresearch/hermes-agent) at an [Octer.ai](https://octer.ai) custom LLM — you supply an API key (and optionally a model name), everything else is fixed.
 
 There are two scripts plus a cleanup helper:
 
@@ -18,37 +18,38 @@ There are two scripts plus a cleanup helper:
 
 ## set-hermes-model.sh
 
-Switch Hermes Agent's LLM to Octer's OpenAI-compatible API. The **only** argument is your API key.
+Switch Hermes Agent's LLM to Octer's OpenAI-compatible API. The required argument is your API key; an optional second argument overrides the model name.
 
 ### Usage
 
 ```bash
-./set-hermes-model.sh <API_KEY>
+./set-hermes-model.sh <API_KEY> [MODEL]
 ```
 
 Example:
 
 ```bash
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # uses the default model gpt-5.5
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx gpt-5.5    # explicit model
 ```
 
 ### Fixed configuration
 
 | Item | Value |
 |------|-------|
-| Endpoint | `https://octer.ai/api/llm` |
+| Endpoint | `https://oclaw.octer.ai/v1` |
 | Protocol | OpenAI-compatible (custom provider) |
-| Model | `Octer-1.0-lite` |
+| Model | `gpt-5.5` (override with the optional 2nd argument) |
 | Provider slug | `octer` |
 
-Only the **API key** is a parameter; everything else is hard-coded.
+The **API key** is required; the **model** is an optional 2nd argument (default `gpt-5.5`); everything else is hard-coded.
 
 ### What the script does
 
 It edits `config.yaml` directly (resolved via `hermes config path`) and writes both a named custom provider and the active model selection — Hermes only reads credentials from a **named** `custom_providers` entry, so setting `model.*` alone yields `No LLM provider configured`:
 
 1. **Custom provider entry** — adds/updates a `custom_providers` list item (`name: Octer`, `base_url`, `api_key`, `model`), de-duplicated by `base_url`.
-2. **Select the model** — sets the `model` block: `provider=octer` (the provider slug, *not* the literal `custom`), `base_url`, `default=Octer-1.0-lite`, `api_key`, `max_tokens=65536`.
+2. **Select the model** — sets the `model` block: `provider=octer` (the provider slug, *not* the literal `custom`), `base_url`, `default=gpt-5.5` (or the model you passed), `api_key`, `max_tokens=65536`.
 3. **Disable fast mode** — sets `agent.reasoning_effort=none`, since the Octer model doesn't support reasoning/fast mode.
 4. **Apply** — runs `hermes gateway start` so the change takes effect immediately (the service goes stale after a config edit and must be re-generated with `start`; `restart` is not enough), prints the current config, then runs a self-test (`hermes -z "你好"`, capped at 60s).
 
@@ -67,19 +68,20 @@ Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes t
 ### Usage
 
 ```powershell
-.\set-hermes-model.ps1 <API_KEY>
+.\set-hermes-model.ps1 <API_KEY> [MODEL]
 ```
 
 Example:
 
 ```powershell
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # uses the default model gpt-5.5
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gpt-5.5    # explicit model
 ```
 
 If the system blocks scripts (`running scripts is disabled on this system`), run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
+powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL]
 ```
 
 ### Differences from the .sh version (implementation only — the written result is identical)
@@ -96,24 +98,31 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
 
 ## set-openclaw-model.sh / set-openclaw-model.ps1
 
-Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://octer.ai/api/llm`, model `Octer-1.0-lite`, OpenAI-compatible adapter (`openai-completions`), provider slug `octer`.
+Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://oclaw.octer.ai/v1`, OpenAI-compatible adapter (`openai-completions`), provider slug `octer`. The model defaults to `gpt-5.5` and can be overridden with an optional 2nd argument.
 
 ### Usage
 
 ```bash
 # Linux / macOS
-./set-openclaw-model.sh <API_KEY>
+./set-openclaw-model.sh <API_KEY> [MODEL]
 ```
 
 ```powershell
 # Windows / PowerShell
-.\set-openclaw-model.ps1 <API_KEY>
+.\set-openclaw-model.ps1 <API_KEY> [MODEL]
+```
+
+Example (Linux / macOS):
+
+```bash
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # uses the default model gpt-5.5
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx gpt-5.5    # explicit model
 ```
 
 ### What the script does
 
-1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://octer.ai/api/llm","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"Octer-1.0-lite","name":"Octer-1.0-lite"}]}`.
-2. **Select the default model** — `openclaw models set octer/Octer-1.0-lite`.
+1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"gpt-5.5","name":"gpt-5.5"}]}` (the `id`/`name` follow the model you passed).
+2. **Select the default model** — `openclaw models set octer/gpt-5.5`.
 3. **Apply & self-test** — `openclaw gateway restart`, print `openclaw models status`, then run a non-fatal self-test (`openclaw agent --agent main -m "你好"`, capped at 60s) — mirroring the Hermes script's `hermes -z` check.
 
 ### Prerequisites
@@ -168,7 +177,7 @@ If your default model still points at `octer`, pick another with `openclaw model
 If `hermes -z` hangs, hit the endpoint directly with `curl` to check whether the endpoint itself is the problem:
 
 ```bash
-curl -sS https://octer.ai/api/llm/chat/completions \
+curl -sS https://oclaw.octer.ai/v1/chat/completions \
   -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" \
-  -d '{"model":"Octer-1.0-lite","messages":[{"role":"user","content":"hi"}]}'
+  -d '{"model":"gpt-5.5","messages":[{"role":"user","content":"hi"}]}'
 ```

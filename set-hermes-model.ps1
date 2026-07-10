@@ -11,16 +11,24 @@
 .PARAMETER ApiKey
   Octer 的 API Key（evo_ 开头）。
 
+.PARAMETER Model
+  模型名称（可选，缺省 gpt-5.5）。
+
 .EXAMPLE
   .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx
 
+.EXAMPLE
+  .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gpt-5.5
+
 .NOTES
   若系统禁止运行脚本，用：
-    powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY>
+    powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL]
 #>
 param(
-  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-hermes-model.ps1 <API_KEY>")]
-  [string]$ApiKey
+  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-hermes-model.ps1 <API_KEY> [MODEL]")]
+  [string]$ApiKey,
+  [Parameter(Mandatory = $false, Position = 1)]
+  [string]$Model = "gpt-5.5"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -28,7 +36,7 @@ $ErrorActionPreference = 'Stop'
 # ── 固定部分 ────────────────────────────────────────────
 $NAME      = "Octer"
 $BASE_URL  = "https://oclaw.octer.ai/v1"  # 接口地址（正式）
-$MODEL     = "gpt-5.5"                    # 模型名称
+$MODEL     = $Model                       # 模型名称（可用第二个参数覆盖）
 $MAX_TOKENS = "65536"
 # ────────────────────────────────────────────────────────
 

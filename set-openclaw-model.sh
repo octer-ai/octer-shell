@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
 # 把 OpenClaw 切换到 Octer 自定义大模型（OpenAI 兼容接口）。比照 set-hermes-model.sh。
-# 用法: ./set-openclaw-model.sh <API_KEY>
+# 用法: ./set-openclaw-model.sh <API_KEY> [MODEL]
+#   MODEL 可选，缺省 gpt-5.5
 #
 # 往 ~/.openclaw/openclaw.json 写一个自定义 provider（models.providers.octer），
-# 选中 octer/Octer-1.0-lite 为默认模型，再重启 gateway。全程走 openclaw 自带 CLI
+# 选中 octer/gpt-5.5（默认模型，可用第二个参数覆盖）为默认模型，再重启 gateway。全程走 openclaw 自带 CLI
 # （config set 带 schema 校验）。
 set -euo pipefail
 
-API_KEY="${1:?用法: $0 <API_KEY>}"
+API_KEY="${1:?用法: $0 <API_KEY> [MODEL]}"
 
 # ── 固定部分 ────────────────────────────────────────────
 PROVIDER="octer"
 BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
-MODEL="gpt-5.5"                       # 模型名称
+MODEL="${2:-gpt-5.5}"                 # 模型名称（可用第二个参数覆盖）
 MODEL_ID="${PROVIDER}/${MODEL}"       # OpenClaw 的 model id 形如 provider/model
 # ────────────────────────────────────────────────────────
 
