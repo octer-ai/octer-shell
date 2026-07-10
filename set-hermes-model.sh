@@ -11,8 +11,8 @@ API_KEY="${1:?用法: $0 <API_KEY>}"
 
 # ── 固定部分 ────────────────────────────────────────────
 NAME="Octer"
-BASE_URL="https://octer.ai/api/llm"   # 接口地址（正式）
-MODEL="Octer-1.0-lite"                # 模型名称
+BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（正式）
+MODEL="gpt-5.5"                       # 模型名称
 MAX_TOKENS="65536"
 # ────────────────────────────────────────────────────────
 

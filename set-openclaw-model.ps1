@@ -26,8 +26,8 @@ $ErrorActionPreference = 'Stop'
 
 # ── 固定部分 ────────────────────────────────────────────
 $Provider = "octer"
-$BaseUrl  = "https://octer.ai/api/llm"   # 接口地址（OpenAI 兼容）
-$Model    = "Octer-1.0-lite"             # 模型名称
+$BaseUrl  = "https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
+$Model    = "gpt-5.5"                    # 模型名称
 $ModelId  = "$Provider/$Model"           # model id 形如 provider/model
 # ────────────────────────────────────────────────────────
 

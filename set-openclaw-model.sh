@@ -11,8 +11,8 @@ API_KEY="${1:?用法: $0 <API_KEY>}"
 
 # ── 固定部分 ────────────────────────────────────────────
 PROVIDER="octer"
-BASE_URL="https://octer.ai/api/llm"   # 接口地址（OpenAI 兼容）
-MODEL="Octer-1.0-lite"                # 模型名称
+BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
+MODEL="gpt-5.5"                       # 模型名称
 MODEL_ID="${PROVIDER}/${MODEL}"       # OpenClaw 的 model id 形如 provider/model
 # ────────────────────────────────────────────────────────
 
