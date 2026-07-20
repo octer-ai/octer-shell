@@ -48,6 +48,8 @@
 
 你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
 
+**这些模型会全部注册到 provider 上**，所以客户端的模型选择器（下拉）里会列出全部模型 —— 菜单/参数只决定哪个是**当前激活/默认**模型。之后在客户端里可随时切换，无需重跑脚本。
+
 ### 固定配置
 
 | 项目 | 值 |
@@ -63,8 +65,8 @@
 
 直接改 `config.yaml`(由 `hermes config path` 解析),同时写「命名的 custom provider」和「选中的 model」—— Hermes 取凭证时只认 `custom_providers` 列表里的命名条目,光设 `model.*` 会报 `No LLM provider configured`：
 
-1. **custom provider 条目**：往 `custom_providers` 列表加/更新一项（`name: Octer`、`base_url`、`api_key`、`model`），按 `base_url` 去重。
-2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=<所选模型>`、`api_key`、`max_tokens=65536`。
+1. **custom provider 条目**：往 `custom_providers` 列表加/更新一项（`name: Octer`、`base_url`、`api_key`、`model`），按 `base_url` 去重。同时写入 `models:` 字典注册**全部**支持的模型（让客户端下拉能列全），并设 `discover_models: false`，避免实时探测 `/v1/models` 把静态列表覆盖回去；单数 `model:` 只是当前激活模型。
+2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=<所选模型>`（缺省 `gpt-5.5`）、`api_key`、`max_tokens=65536`。
 3. **关闭 fast 模式**：设 `agent.reasoning_effort=none`（Octer 模型不支持 reasoning/fast 模式）。
 4. **生效**：跑 `hermes gateway start` 让新模型立即生效（改配置后 service 会 stale,必须 `start` 重新生成,`restart` 不行），打印当前配置,再自测一次（`hermes -z "你好"`,最多等 60s）。
 
@@ -136,8 +138,8 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 
 ### 脚本做了什么
 
-1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"<MODEL>","name":"<MODEL>"}]}`(`id`/`name` 跟随所选模型)。
-2. **选默认模型** —— `openclaw models set octer/<MODEL>`。
+1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 的 `models` 数组包含**全部**支持的模型(`[{"id":"gpt-5.5","name":"gpt-5.5"}, …]`),让客户端下拉能列全;若你传了列表外的模型也会一并注册。
+2. **选默认模型** —— `openclaw models set octer/<MODEL>`(只设激活/默认,下拉仍显示全部已注册模型)。
 3. **生效 & 自测** —— `openclaw gateway restart`,打印 `openclaw models status`,再跑一次容错自测(`openclaw agent --agent main -m "你好"`,最多 60s,不通过不影响配置)—— 对齐 Hermes 脚本的 `hermes -z` 检查。
 
 ### 前置条件

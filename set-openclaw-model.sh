@@ -71,9 +71,17 @@ MODEL_ID="${PROVIDER}/${MODEL}"       # OpenClaw 的 model id 形如 provider/mo
 command -v openclaw >/dev/null 2>&1 || { echo "❌ 未找到 openclaw CLI（需在装了 OpenClaw 的机器执行）"; exit 1; }
 
 # provider 配置（schema 校验过的结构：baseUrl/apiKey/auth/api + models 数组）
-JSON="{\"baseUrl\":\"${BASE_URL}\",\"apiKey\":\"${API_KEY}\",\"auth\":\"api-key\",\"api\":\"openai-completions\",\"models\":[{\"id\":\"${MODEL}\",\"name\":\"${MODEL}\"}]}"
+# 注册全部支持的模型，让客户端下拉能列出所有模型；models_set 再选其中一个为默认。
+# 若用户显式传了列表外的模型，也一并注册，保证 models set 能选中它。
+ALL_MODELS=("${MODELS[@]}")
+case " ${MODELS[*]} " in *" ${MODEL} "*) ;; *) ALL_MODELS+=("$MODEL");; esac
+MODELS_JSON=""
+for m in "${ALL_MODELS[@]}"; do
+  MODELS_JSON="${MODELS_JSON:+${MODELS_JSON},}{\"id\":\"${m}\",\"name\":\"${m}\"}"
+done
+JSON="{\"baseUrl\":\"${BASE_URL}\",\"apiKey\":\"${API_KEY}\",\"auth\":\"api-key\",\"api\":\"openai-completions\",\"models\":[${MODELS_JSON}]}"
 
-echo "🔧 写入 provider ${PROVIDER}（${MODEL} @ ${BASE_URL}）..."
+echo "🔧 写入 provider ${PROVIDER}（默认 ${MODEL}，共 ${#MODELS[@]} 个模型 @ ${BASE_URL}）..."
 openclaw config set "models.providers.${PROVIDER}" "${JSON}" --strict-json --merge
 
 echo "🎯 选中默认模型 ${MODEL_ID}..."

@@ -99,7 +99,8 @@ echo "python: $PY"
 # provider slug = 名字归一化（小写、空格转 -），custom provider 解析按它匹配
 SLUG="$(printf '%s' "$NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-')"
 
-API_KEY="$API_KEY" NAME="$NAME" SLUG="$SLUG" BASE_URL="$BASE_URL" MODEL="$MODEL" MAX_TOKENS="$MAX_TOKENS" \
+MODELS_LIST="$(printf '%s\n' "${MODELS[@]}")"
+API_KEY="$API_KEY" NAME="$NAME" SLUG="$SLUG" BASE_URL="$BASE_URL" MODEL="$MODEL" MODELS_LIST="$MODELS_LIST" MAX_TOKENS="$MAX_TOKENS" \
 "$PY" - "$CFG" <<'PY'
 import os, sys, yaml
 path = sys.argv[1]
@@ -114,6 +115,7 @@ SLUG = os.environ["SLUG"]
 BASE = os.environ["BASE_URL"].rstrip("/")
 KEY  = os.environ["API_KEY"]
 MODEL = os.environ["MODEL"]
+MODELS_ALL = [m.strip() for m in os.environ.get("MODELS_LIST", "").splitlines() if m.strip()]
 MAXT = int(os.environ["MAX_TOKENS"])
 
 # 1) custom_providers 列表条目（按 base_url 去重，命中则更新）
@@ -128,6 +130,18 @@ if entry is None:
     entry = {}
     cps.append(entry)
 entry.update({"name": NAME, "base_url": BASE, "api_key": KEY, "model": MODEL})
+# 注册全部支持的模型，让客户端下拉能列出所有模型（单数 model 只是当前激活项）。
+# models 用 dict（key=模型 id），并关闭 discover_models 以免 /v1/models 探测把静态列表覆盖回去。
+models_map = entry.get("models")
+if not isinstance(models_map, dict):
+    models_map = {}
+for mid in MODELS_ALL:
+    if mid not in models_map:
+        models_map[mid] = {}
+if MODEL not in models_map:
+    models_map[MODEL] = {}
+entry["models"] = models_map
+entry["discover_models"] = False
 cfg["custom_providers"] = cps
 
 # 2) model 块：选中该 custom 端点

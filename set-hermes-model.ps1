@@ -160,6 +160,7 @@ SLUG = os.environ["SLUG"]
 BASE = os.environ["BASE_URL"].rstrip("/")
 KEY  = os.environ["API_KEY"]
 MODEL = os.environ["MODEL"]
+MODELS_ALL = [m.strip() for m in os.environ.get("MODELS_LIST", "").splitlines() if m.strip()]
 MAXT = int(os.environ["MAX_TOKENS"])
 
 # 1) custom_providers 列表条目（按 base_url 去重，命中则更新）
@@ -174,6 +175,18 @@ if entry is None:
     entry = {}
     cps.append(entry)
 entry.update({"name": NAME, "base_url": BASE, "api_key": KEY, "model": MODEL})
+# 注册全部支持的模型，让客户端下拉能列出所有模型（单数 model 只是当前激活项）。
+# models 用 dict（key=模型 id），并关闭 discover_models 以免 /v1/models 探测把静态列表覆盖回去。
+models_map = entry.get("models")
+if not isinstance(models_map, dict):
+    models_map = {}
+for mid in MODELS_ALL:
+    if mid not in models_map:
+        models_map[mid] = {}
+if MODEL not in models_map:
+    models_map[MODEL] = {}
+entry["models"] = models_map
+entry["discover_models"] = False
 cfg["custom_providers"] = cps
 
 # 2) model 块：选中该 custom 端点
@@ -204,12 +217,13 @@ print("OK config.yaml 已写入 custom_providers[Octer] + model 块")
 $pyFile = Join-Path $env:TEMP 'octer_hermes_cfg.py'
 [System.IO.File]::WriteAllText($pyFile, $pyCode, (New-Object System.Text.UTF8Encoding $false))
 
-$env:NAME       = $NAME
-$env:SLUG       = $SLUG
-$env:BASE_URL   = $BASE_URL
-$env:API_KEY    = $ApiKey
-$env:MODEL      = $MODEL
-$env:MAX_TOKENS = $MAX_TOKENS
+$env:NAME        = $NAME
+$env:SLUG        = $SLUG
+$env:BASE_URL    = $BASE_URL
+$env:API_KEY     = $ApiKey
+$env:MODEL       = $MODEL
+$env:MODELS_LIST = ($Models -join "`n")
+$env:MAX_TOKENS  = $MAX_TOKENS
 
 & $PY @PYPRE $pyFile $CFG
 if ($LASTEXITCODE -ne 0) { Write-Host "X 写入 config.yaml 失败" -ForegroundColor Red; exit 1 }

@@ -50,6 +50,8 @@ The menu (first item is the default) offers:
 
 You can still pass any other model name explicitly as the 2nd argument; it's used as-is with a warning if it's not in the list.
 
+**All of these models are registered on the provider**, so the client's model selector (dropdown) lists every one of them — the menu / argument only decides which is the *active/default* model. In your app you can switch between them at any time without re-running the script.
+
 ### Fixed configuration
 
 | Item | Value |
@@ -65,8 +67,8 @@ The **API key** is required; the **model** comes from the interactive menu or th
 
 It edits `config.yaml` directly (resolved via `hermes config path`) and writes both a named custom provider and the active model selection — Hermes only reads credentials from a **named** `custom_providers` entry, so setting `model.*` alone yields `No LLM provider configured`:
 
-1. **Custom provider entry** — adds/updates a `custom_providers` list item (`name: Octer`, `base_url`, `api_key`, `model`), de-duplicated by `base_url`.
-2. **Select the model** — sets the `model` block: `provider=octer` (the provider slug, *not* the literal `custom`), `base_url`, `default=gemini-3-flash-preview` (or the model you passed), `api_key`, `max_tokens=65536`.
+1. **Custom provider entry** — adds/updates a `custom_providers` list item (`name: Octer`, `base_url`, `api_key`, `model`), de-duplicated by `base_url`. It also writes a `models:` dict registering **all** supported models (so the client's model dropdown lists them all) and sets `discover_models: false` so a live `/v1/models` probe doesn't overwrite that static list. The singular `model:` field is just the currently active model.
+2. **Select the model** — sets the `model` block: `provider=octer` (the provider slug, *not* the literal `custom`), `base_url`, `default=<selected model>` (default `gpt-5.5`), `api_key`, `max_tokens=65536`.
 3. **Disable fast mode** — sets `agent.reasoning_effort=none`, since the Octer model doesn't support reasoning/fast mode.
 4. **Apply** — runs `hermes gateway start` so the change takes effect immediately (the service goes stale after a config edit and must be re-generated with `start`; `restart` is not enough), prints the current config, then runs a self-test (`hermes -z "你好"`, capped at 60s).
 
@@ -138,8 +140,8 @@ Example (Linux / macOS):
 
 ### What the script does
 
-1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"<MODEL>","name":"<MODEL>"}]}` (the `id`/`name` follow the selected model).
-2. **Select the default model** — `openclaw models set octer/<MODEL>`.
+1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>`'s `models` array holds **all** supported models (`[{"id":"gpt-5.5","name":"gpt-5.5"}, …]`) so the client's model dropdown lists every one of them. If you passed a custom model not in the list, it's added too.
+2. **Select the default model** — `openclaw models set octer/<MODEL>` (only sets the active/default; the dropdown still shows all registered models).
 3. **Apply & self-test** — `openclaw gateway restart`, print `openclaw models status`, then run a non-fatal self-test (`openclaw agent --agent main -m "你好"`, capped at 60s) — mirroring the Hermes script's `hermes -z` check.
 
 ### Prerequisites

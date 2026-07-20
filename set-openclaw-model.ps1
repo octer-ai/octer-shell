@@ -92,10 +92,15 @@ if (-not (Test-Cmd 'openclaw')) {
   exit 1
 }
 
-# provider 配置 JSON（手拼以保证单元素 models 数组形状，避开 PS5.1 的数组解包坑）
-$json = '{"baseUrl":"' + $BaseUrl + '","apiKey":"' + $ApiKey + '","auth":"api-key","api":"openai-completions","models":[{"id":"' + $Model + '","name":"' + $Model + '"}]}'
+# provider 配置 JSON（手拼以避开 PS5.1 的数组解包坑）
+# 注册全部支持的模型，让客户端下拉能列出所有模型；models set 再选其中一个为默认。
+# 若用户显式传了列表外的模型，也一并注册，保证 models set 能选中它。
+$allModels = @($Models)
+if ($allModels -notcontains $Model) { $allModels += $Model }
+$modelsJson = ($allModels | ForEach-Object { '{"id":"' + $_ + '","name":"' + $_ + '"}' }) -join ','
+$json = '{"baseUrl":"' + $BaseUrl + '","apiKey":"' + $ApiKey + '","auth":"api-key","api":"openai-completions","models":[' + $modelsJson + ']}'
 
-Write-Host "~ 写入 provider $Provider（$Model @ $BaseUrl）..."
+Write-Host "~ 写入 provider $Provider（默认 $Model，共 $($allModels.Count) 个模型 @ $BaseUrl）..."
 & openclaw config set "models.providers.$Provider" $json --strict-json --merge
 
 Write-Host "~ 选中默认模型 $ModelId..."
