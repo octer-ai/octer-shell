@@ -18,7 +18,7 @@ There are two scripts plus a cleanup helper:
 
 ## set-hermes-model.sh
 
-Switch Hermes Agent's LLM to Octer's OpenAI-compatible API. The required argument is your API key; an optional second argument overrides the model name.
+Switch Hermes Agent's LLM to Octer's OpenAI-compatible API. The required argument is your API key. The model is chosen from an **interactive menu** ("dropdown") when you don't pass one, or via an optional second argument.
 
 ### Usage
 
@@ -29,9 +29,26 @@ Switch Hermes Agent's LLM to Octer's OpenAI-compatible API. The required argumen
 Example:
 
 ```bash
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # uses the default model gemini-3-flash-preview
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # explicit model
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # shows the interactive model menu (default gpt-5.5)
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx claude-opus-4-8    # explicit model, skips the menu
 ```
+
+When no model argument is given, the script prints a numbered menu of the supported models and lets you pick one (press Enter for the default). In a non-interactive environment (pipe/CI) it falls back to the default `gpt-5.5`.
+
+### Supported models
+
+The menu (first item is the default) offers:
+
+- `gpt-5.5` (default)
+- `gpt-5.6-sol`
+- `gpt-5.6-terra`
+- `gpt-5.6-luna`
+- `claude-opus-4-8`
+- `gemini-3.1-pro-preview`
+- `gemini-3-flash-preview`
+- `gemini-3.5-flash`
+
+You can still pass any other model name explicitly as the 2nd argument; it's used as-is with a warning if it's not in the list.
 
 ### Fixed configuration
 
@@ -39,10 +56,10 @@ Example:
 |------|-------|
 | Endpoint | `https://oclaw.octer.ai/v1` |
 | Protocol | OpenAI-compatible (custom provider) |
-| Model | `gemini-3-flash-preview` (override with the optional 2nd argument) |
+| Model | picked from the menu, or the optional 2nd argument (default `gpt-5.5`) |
 | Provider slug | `octer` |
 
-The **API key** is required; the **model** is an optional 2nd argument (default `gemini-3-flash-preview`); everything else is hard-coded.
+The **API key** is required; the **model** comes from the interactive menu or the optional 2nd argument (default `gpt-5.5`); everything else is hard-coded.
 
 ### What the script does
 
@@ -63,7 +80,7 @@ A timestamped backup of `config.yaml` is written before any change.
 
 ## set-hermes-model.ps1 (Windows / PowerShell)
 
-Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes the `custom_providers[Octer]` entry + `model` block, disables `agent.reasoning_effort`, runs `hermes gateway start`, and self-tests.
+Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it shows the same interactive model menu (default `gpt-5.5`), writes the `custom_providers[Octer]` entry + `model` block, disables `agent.reasoning_effort`, runs `hermes gateway start`, and self-tests.
 
 ### Usage
 
@@ -74,8 +91,8 @@ Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes t
 Example:
 
 ```powershell
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # uses the default model gemini-3-flash-preview
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # explicit model
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # shows the interactive model menu (default gpt-5.5)
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx claude-opus-4-8    # explicit model, skips the menu
 ```
 
 If the system blocks scripts (`running scripts is disabled on this system`), run:
@@ -98,7 +115,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 
 ## set-openclaw-model.sh / set-openclaw-model.ps1
 
-Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://oclaw.octer.ai/v1`, OpenAI-compatible adapter (`openai-completions`), provider slug `octer`. The model defaults to `gemini-3-flash-preview` and can be overridden with an optional 2nd argument.
+Switch OpenClaw to the Octer custom model — the same idea as the Hermes scripts, applied to OpenClaw's own config (`~/.openclaw/openclaw.json`) via `openclaw config set`. Fixed params: base URL `https://oclaw.octer.ai/v1`, OpenAI-compatible adapter (`openai-completions`), provider slug `octer`. The model is chosen from the same interactive menu (default `gpt-5.5`, see [Supported models](#supported-models)) when you don't pass one, or via an optional 2nd argument.
 
 ### Usage
 
@@ -115,14 +132,14 @@ Switch OpenClaw to the Octer custom model — the same idea as the Hermes script
 Example (Linux / macOS):
 
 ```bash
-./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # uses the default model gemini-3-flash-preview
-./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # explicit model
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # shows the interactive model menu (default gpt-5.5)
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx claude-opus-4-8    # explicit model, skips the menu
 ```
 
 ### What the script does
 
-1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"gemini-3-flash-preview","name":"gemini-3-flash-preview"}]}` (the `id`/`name` follow the model you passed).
-2. **Select the default model** — `openclaw models set octer/gemini-3-flash-preview`.
+1. **Register the provider** — `openclaw config set models.providers.octer '<json>' --strict-json --merge`, where `<json>` is `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"<MODEL>","name":"<MODEL>"}]}` (the `id`/`name` follow the selected model).
+2. **Select the default model** — `openclaw models set octer/<MODEL>`.
 3. **Apply & self-test** — `openclaw gateway restart`, print `openclaw models status`, then run a non-fatal self-test (`openclaw agent --agent main -m "你好"`, capped at 60s) — mirroring the Hermes script's `hermes -z` check.
 
 ### Prerequisites

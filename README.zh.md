@@ -16,7 +16,7 @@
 
 ## set-hermes-model.sh
 
-把 Hermes Agent 的 LLM 切换到 Octer 的 OpenAI 兼容接口，传入 API Key（模型名称可选，用第二个参数覆盖）。
+把 Hermes Agent 的 LLM 切换到 Octer 的 OpenAI 兼容接口，传入 API Key。模型不传时会弹出**交互式菜单**（「下拉」）让你从支持列表里选，也可以用第二个参数直接指定。
 
 ### 用法
 
@@ -27,9 +27,26 @@
 示例：
 
 ```bash
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # 用默认模型 gemini-3-flash-preview
-./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # 显式指定模型
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx            # 弹交互式模型菜单（默认 gpt-5.5）
+./set-hermes-model.sh evo_xxxxxxxxxxxxxxxx claude-opus-4-8    # 显式指定模型，跳过菜单
 ```
+
+不传模型参数时，脚本会打印带编号的支持模型菜单让你选（直接回车用默认项）。在非交互环境（管道 / CI）下会回退到默认 `gpt-5.5`。
+
+### 支持的模型
+
+菜单（第一项为默认）提供：
+
+- `gpt-5.5`（默认）
+- `gpt-5.6-sol`
+- `gpt-5.6-terra`
+- `gpt-5.6-luna`
+- `claude-opus-4-8`
+- `gemini-3.1-pro-preview`
+- `gemini-3-flash-preview`
+- `gemini-3.5-flash`
+
+你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
 
 ### 固定配置
 
@@ -37,17 +54,17 @@
 |------|-----|
 | 接口地址 | `https://oclaw.octer.ai/v1` |
 | API 协议类型 | OpenAI 兼容协议（custom provider） |
-| 模型名称 | `gemini-3-flash-preview`（可用第二个参数覆盖） |
+| 模型名称 | 从菜单选择，或用第二个参数指定（默认 `gpt-5.5`） |
 | Provider 标识 | `octer` |
 
-**API Key** 必填；**模型名称**是可选的第二个参数（缺省 `gemini-3-flash-preview`），其余固定。
+**API Key** 必填；**模型名称**来自交互式菜单或可选的第二个参数（缺省 `gpt-5.5`），其余固定。
 
 ### 脚本做了什么
 
 直接改 `config.yaml`(由 `hermes config path` 解析),同时写「命名的 custom provider」和「选中的 model」—— Hermes 取凭证时只认 `custom_providers` 列表里的命名条目,光设 `model.*` 会报 `No LLM provider configured`：
 
 1. **custom provider 条目**：往 `custom_providers` 列表加/更新一项（`name: Octer`、`base_url`、`api_key`、`model`），按 `base_url` 去重。
-2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=gemini-3-flash-preview`（或你传入的模型）、`api_key`、`max_tokens=65536`。
+2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=<所选模型>`、`api_key`、`max_tokens=65536`。
 3. **关闭 fast 模式**：设 `agent.reasoning_effort=none`（Octer 模型不支持 reasoning/fast 模式）。
 4. **生效**：跑 `hermes gateway start` 让新模型立即生效（改配置后 service 会 stale,必须 `start` 重新生成,`restart` 不行），打印当前配置,再自测一次（`hermes -z "你好"`,最多等 60s）。
 
@@ -61,7 +78,7 @@
 
 ## set-hermes-model.ps1（Windows / PowerShell）
 
-Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：同样往 `config.yaml` 写 `custom_providers[Octer]` 列表条目 + `model` 块、关闭 `agent.reasoning_effort`，再 `hermes gateway start` 并自测。
+Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：同样弹出交互式模型菜单（默认 `gpt-5.5`），往 `config.yaml` 写 `custom_providers[Octer]` 列表条目 + `model` 块、关闭 `agent.reasoning_effort`，再 `hermes gateway start` 并自测。
 
 ### 用法
 
@@ -72,8 +89,8 @@ Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一�
 示例：
 
 ```powershell
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # 用默认模型 gemini-3-flash-preview
-.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # 显式指定模型
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx            # 弹交互式模型菜单（默认 gpt-5.5）
+.\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx claude-opus-4-8    # 显式指定模型，跳过菜单
 ```
 
 若系统禁止运行脚本（报“无法加载……在此系统上禁止运行脚本”），用：
@@ -96,7 +113,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 
 ## set-openclaw-model.sh / set-openclaw-model.ps1
 
-把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://oclaw.octer.ai/v1`、OpenAI 兼容适配器(`openai-completions`)、provider slug `octer`。模型缺省 `gemini-3-flash-preview`,可用第二个参数覆盖。
+把 OpenClaw 切到 Octer 自定义大模型 —— 思路同 Hermes 脚本,只是落到 OpenClaw 自己的配置(`~/.openclaw/openclaw.json`),通过 `openclaw config set` 写入。固定参数:接口地址 `https://oclaw.octer.ai/v1`、OpenAI 兼容适配器(`openai-completions`)、provider slug `octer`。模型不传时弹出与 Hermes 相同的交互式菜单（默认 `gpt-5.5`，见[支持的模型](#支持的模型)），也可用第二个参数直接指定。
 
 ### 用法
 
@@ -113,14 +130,14 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 示例(Linux / macOS):
 
 ```bash
-./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # 用默认模型 gemini-3-flash-preview
-./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview    # 显式指定模型
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx            # 弹交互式模型菜单（默认 gpt-5.5）
+./set-openclaw-model.sh evo_xxxxxxxxxxxxxxxx claude-opus-4-8    # 显式指定模型，跳过菜单
 ```
 
 ### 脚本做了什么
 
-1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"gemini-3-flash-preview","name":"gemini-3-flash-preview"}]}`(`id`/`name` 跟随你传入的模型)。
-2. **选默认模型** —— `openclaw models set octer/gemini-3-flash-preview`。
+1. **注册 provider** —— `openclaw config set models.providers.octer '<json>' --strict-json --merge`,其中 `<json>` 为 `{"baseUrl":"https://oclaw.octer.ai/v1","apiKey":"<API_KEY>","auth":"api-key","api":"openai-completions","models":[{"id":"<MODEL>","name":"<MODEL>"}]}`(`id`/`name` 跟随所选模型)。
+2. **选默认模型** —— `openclaw models set octer/<MODEL>`。
 3. **生效 & 自测** —— `openclaw gateway restart`,打印 `openclaw models status`,再跑一次容错自测(`openclaw agent --agent main -m "你好"`,最多 60s,不通过不影响配置)—— 对齐 Hermes 脚本的 `hermes -z` 检查。
 
 ### 前置条件

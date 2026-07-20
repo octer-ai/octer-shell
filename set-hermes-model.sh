@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # 配置 Hermes Agent 使用 Octer 自定义大模型，并选中它。
 # 用法: ./set-hermes-model.sh <API_KEY> [MODEL]
-#   MODEL 可选，缺省 gemini-3-flash-preview
+#   MODEL 可选：不传则弹交互式菜单让你从支持列表里选（默认 gpt-5.5）；
+#   也可直接把模型名作为第二个参数传入跳过菜单。
 #
 # 关键：Hermes 取凭证时只认「命名的 custom provider」(custom_providers 列表条目)，
 # 光设 model.* 会报 "No LLM provider configured"。本脚本按 hermes 自己 _save_custom_provider
@@ -13,8 +14,58 @@ API_KEY="${1:?用法: $0 <API_KEY> [MODEL]}"
 # ── 固定部分 ────────────────────────────────────────────
 NAME="Octer"
 BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（正式）
-MODEL="${2:-gemini-3-flash-preview}"                 # 模型名称（可用第二个参数覆盖）
 MAX_TOKENS="65536"
+# ────────────────────────────────────────────────────────
+
+# ── 支持的模型列表（下拉选择用；第一项为默认）─────────────
+MODELS=(
+  "gpt-5.5"
+  "gpt-5.6-sol"
+  "gpt-5.6-terra"
+  "gpt-5.6-luna"
+  "claude-opus-4-8"
+  "gemini-3.1-pro-preview"
+  "gemini-3-flash-preview"
+  "gemini-3.5-flash"
+)
+DEFAULT_MODEL="${MODELS[0]}"
+
+# 决定模型：① 命令行传了第二参数就用它；② 否则在交互终端弹「下拉」菜单；
+# ③ 非交互环境（管道/CI）无法读输入时回退默认。
+select_model() {
+  if [ "${1:-}" != "" ]; then
+    MODEL="$1"
+    local in_list=0 m
+    for m in "${MODELS[@]}"; do [ "$m" = "$MODEL" ] && in_list=1 && break; done
+    [ "$in_list" -eq 1 ] || echo "⚠️ '$MODEL' 不在内置列表里，仍按你指定的使用。"
+    return
+  fi
+  if [ ! -t 0 ]; then
+    MODEL="$DEFAULT_MODEL"
+    echo "（非交互环境，未传 MODEL，使用默认 ${MODEL}）"
+    return
+  fi
+  echo "请选择要使用的模型（直接回车用默认 ${DEFAULT_MODEL}）："
+  local i=1 m
+  for m in "${MODELS[@]}"; do
+    if [ "$m" = "$DEFAULT_MODEL" ]; then printf "  %d) %s（默认）\n" "$i" "$m"
+    else printf "  %d) %s\n" "$i" "$m"; fi
+    i=$((i+1))
+  done
+  printf "输入编号 [1-%d]: " "${#MODELS[@]}"
+  local choice=""
+  read -r choice || true
+  if [ -z "$choice" ]; then
+    MODEL="$DEFAULT_MODEL"
+  elif printf '%s' "$choice" | grep -qE '^[0-9]+$' && [ "$choice" -ge 1 ] && [ "$choice" -le "${#MODELS[@]}" ]; then
+    MODEL="${MODELS[$((choice-1))]}"
+  else
+    echo "⚠️ 无效输入 '$choice'，使用默认 ${DEFAULT_MODEL}"
+    MODEL="$DEFAULT_MODEL"
+  fi
+}
+select_model "${2:-}"
+echo "→ 选定模型: ${MODEL}"
 # ────────────────────────────────────────────────────────
 
 command -v hermes >/dev/null 2>&1 || { echo "❌ 未找到 hermes CLI（需在装了 hermes 的机器执行）"; exit 1; }

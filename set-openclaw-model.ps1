@@ -4,14 +4,15 @@
 
 .DESCRIPTION
   与 set-openclaw-model.sh 等价：往 ~/.openclaw/openclaw.json 写自定义 provider
-  （models.providers.octer），选中 octer/gemini-3-flash-preview（默认模型，可用第二个参数覆盖）为默认，再重启 gateway。
+  （models.providers.octer），选中所选模型为默认，再重启 gateway。
   全程走 openclaw 自带 CLI（config set 带 schema 校验）。
 
 .PARAMETER ApiKey
   Octer 的 API Key（evo_ 开头）。
 
 .PARAMETER Model
-  模型名称（可选，缺省 gemini-3-flash-preview）。
+  模型名称（可选）：不传则弹交互式菜单让你从支持列表里选（默认 gpt-5.5）；
+  也可直接把模型名作为第二个参数传入跳过菜单。
 
 .EXAMPLE
   .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx
@@ -27,7 +28,7 @@ param(
   [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-openclaw-model.ps1 <API_KEY> [MODEL]")]
   [string]$ApiKey,
   [Parameter(Mandatory = $false, Position = 1)]
-  [string]$Model = "gemini-3-flash-preview"
+  [string]$Model = ""
 )
 
 $ErrorActionPreference = 'Stop'
@@ -35,6 +36,52 @@ $ErrorActionPreference = 'Stop'
 # ── 固定部分 ────────────────────────────────────────────
 $Provider = "octer"
 $BaseUrl  = "https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
+# ────────────────────────────────────────────────────────
+
+# ── 支持的模型列表（下拉选择用；第一项为默认）─────────────
+$Models = @(
+  'gpt-5.5',
+  'gpt-5.6-sol',
+  'gpt-5.6-terra',
+  'gpt-5.6-luna',
+  'claude-opus-4-8',
+  'gemini-3.1-pro-preview',
+  'gemini-3-flash-preview',
+  'gemini-3.5-flash'
+)
+$DefaultModel = $Models[0]
+
+# 决定模型：① 传了 -Model 就用它；② 否则交互式弹「下拉」菜单；
+# ③ 非交互环境（输入被重定向/CI）回退默认。
+function Select-Model([string]$Passed) {
+  if ($Passed) {
+    if ($Models -notcontains $Passed) {
+      Write-Host "! '$Passed' 不在内置列表里，仍按你指定的使用。" -ForegroundColor Yellow
+    }
+    return $Passed
+  }
+  if ([Console]::IsInputRedirected) {
+    Write-Host "（非交互环境，未传 Model，使用默认 $DefaultModel）"
+    return $DefaultModel
+  }
+  Write-Host "请选择要使用的模型（直接回车用默认 $DefaultModel）："
+  for ($i = 0; $i -lt $Models.Count; $i++) {
+    $label = $Models[$i]
+    if ($label -eq $DefaultModel) { $label = "$label（默认）" }
+    Write-Host ("  {0}) {1}" -f ($i + 1), $label)
+  }
+  $choice = Read-Host ("输入编号 [1-{0}]" -f $Models.Count)
+  if ([string]::IsNullOrWhiteSpace($choice)) { return $DefaultModel }
+  $n = 0
+  if ([int]::TryParse($choice, [ref]$n) -and $n -ge 1 -and $n -le $Models.Count) {
+    return $Models[$n - 1]
+  }
+  Write-Host "! 无效输入 '$choice'，使用默认 $DefaultModel" -ForegroundColor Yellow
+  return $DefaultModel
+}
+
+$Model = Select-Model $Model
+Write-Host "-> 选定模型: $Model"
 $ModelId  = "$Provider/$Model"           # model id 形如 provider/model
 # ────────────────────────────────────────────────────────
 
