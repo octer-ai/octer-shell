@@ -3,7 +3,7 @@
   清除 OpenClaw 里的 Octer 自定义模型 provider，恢复到默认（Windows / PowerShell 版）。
 
 .DESCRIPTION
-  与 clear-openclaw-model.sh 等价：openclaw config unset models.providers.octer，再重启 gateway。
+  与 clear-openclaw-model.sh 等价：openclaw config unset models.providers.octer-beta，再重启 gateway。
 
 .EXAMPLE
   .\clear-openclaw-model.ps1
@@ -15,7 +15,7 @@
 
 $ErrorActionPreference = 'Stop'
 
-$Provider = "octer"
+$Provider = "octer-beta"
 
 function Test-Cmd($name) { $null -ne (Get-Command $name -ErrorAction SilentlyContinue) }
 

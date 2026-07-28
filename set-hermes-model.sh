@@ -12,8 +12,8 @@ set -euo pipefail
 API_KEY="${1:?用法: $0 <API_KEY> [MODEL]}"
 
 # ── 固定部分 ────────────────────────────────────────────
-NAME="Octer"
-BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（正式）
+NAME="Octer-beta"
+BASE_URL="https://test.octer.ai/v1"  # 测试接口地址
 MAX_TOKENS="65536"
 # ────────────────────────────────────────────────────────
 
@@ -27,6 +27,13 @@ MODELS=(
   "gemini-3.1-pro-preview"
   "gemini-3-flash-preview"
   "gemini-3.5-flash"
+  "deepseek-v4-pro"
+  "deepseek-v4-flash"
+  "glm-5.2"
+  "qwen3.7-max"
+  "qwen3.7-plus"
+  "MiniMax-M3"
+  "gpt-image-2"
 )
 DEFAULT_MODEL="${MODELS[0]}"
 
@@ -166,7 +173,7 @@ cfg["agent"] = a
 
 with open(path, "w") as f:
     yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
-print("✅ config.yaml 已写入 custom_providers[Octer] + model 块")
+print("✅ config.yaml 已写入 custom_providers[Octer-beta] + model 块")
 PY
 
 echo "✅ 已配置并选中: ${NAME} → ${MODEL} @ ${BASE_URL}（已关闭 fast/reasoning）"

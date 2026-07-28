@@ -4,7 +4,7 @@
 
 .DESCRIPTION
   与 set-openclaw-model.sh 等价：往 ~/.openclaw/openclaw.json 写自定义 provider
-  （models.providers.octer），选中所选模型为默认，再重启 gateway。
+  （models.providers.octer-beta），选中所选模型为默认，再重启 gateway。
   全程走 openclaw 自带 CLI（config set 带 schema 校验）。
 
 .PARAMETER ApiKey
@@ -34,8 +34,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # ── 固定部分 ────────────────────────────────────────────
-$Provider = "octer"
-$BaseUrl  = "https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
+$Provider = "octer-beta"
+$BaseUrl  = "https://test.octer.ai/v1"  # 测试接口地址（OpenAI 兼容）
 # ────────────────────────────────────────────────────────
 
 # ── 支持的模型列表（下拉选择用；第一项为默认）─────────────
@@ -47,7 +47,14 @@ $Models = @(
   'claude-opus-4-8',
   'gemini-3.1-pro-preview',
   'gemini-3-flash-preview',
-  'gemini-3.5-flash'
+  'gemini-3.5-flash',
+  'deepseek-v4-pro',
+  'deepseek-v4-flash',
+  'glm-5.2',
+  'qwen3.7-max',
+  'qwen3.7-plus',
+  'MiniMax-M3',
+  'gpt-image-2'
 )
 $DefaultModel = $Models[0]
 

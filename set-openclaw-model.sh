@@ -4,7 +4,7 @@
 #   MODEL 可选：不传则弹交互式菜单让你从支持列表里选（默认 gpt-5.5）；
 #   也可直接把模型名作为第二个参数传入跳过菜单。
 #
-# 往 ~/.openclaw/openclaw.json 写一个自定义 provider（models.providers.octer），
+# 往 ~/.openclaw/openclaw.json 写一个自定义 provider（models.providers.octer-beta），
 # 选中所选模型为默认模型，再重启 gateway。全程走 openclaw 自带 CLI
 # （config set 带 schema 校验）。
 set -euo pipefail
@@ -12,8 +12,8 @@ set -euo pipefail
 API_KEY="${1:?用法: $0 <API_KEY> [MODEL]}"
 
 # ── 固定部分 ────────────────────────────────────────────
-PROVIDER="octer"
-BASE_URL="https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
+PROVIDER="octer-beta"
+BASE_URL="https://test.octer.ai/v1"  # 测试接口地址（OpenAI 兼容）
 # ────────────────────────────────────────────────────────
 
 # ── 支持的模型列表（下拉选择用；第一项为默认）─────────────
@@ -26,6 +26,13 @@ MODELS=(
   "gemini-3.1-pro-preview"
   "gemini-3-flash-preview"
   "gemini-3.5-flash"
+  "deepseek-v4-pro"
+  "deepseek-v4-flash"
+  "glm-5.2"
+  "qwen3.7-max"
+  "qwen3.7-plus"
+  "MiniMax-M3"
+  "gpt-image-2"
 )
 DEFAULT_MODEL="${MODELS[0]}"
 

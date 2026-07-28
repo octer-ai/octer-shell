@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # 清除 OpenClaw 里的 Octer 自定义模型 provider，恢复到默认。比照 clear-hermes-model.sh。
-# set-openclaw-model.sh 写的是 models.providers.octer；本脚本用 openclaw config unset 删掉它。
+# set-openclaw-model.sh 写的是 models.providers.octer-beta；本脚本用 openclaw config unset 删掉它。
 # 用法: ./clear-openclaw-model.sh
 set -euo pipefail
 
-PROVIDER="octer"
+PROVIDER="octer-beta"
 
 command -v openclaw >/dev/null 2>&1 || { echo "❌ 未找到 openclaw CLI（需在装了 OpenClaw 的机器执行）"; exit 1; }
 

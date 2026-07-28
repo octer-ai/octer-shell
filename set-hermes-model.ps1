@@ -35,8 +35,8 @@ param(
 $ErrorActionPreference = 'Stop'
 
 # ── 固定部分 ────────────────────────────────────────────
-$NAME      = "Octer"
-$BASE_URL  = "https://oclaw.octer.ai/v1"  # 接口地址（正式）
+$NAME      = "Octer-beta"
+$BASE_URL  = "https://test.octer.ai/v1"  # 测试接口地址
 $MAX_TOKENS = "65536"
 # ────────────────────────────────────────────────────────
 
@@ -49,7 +49,14 @@ $Models = @(
   'claude-opus-4-8',
   'gemini-3.1-pro-preview',
   'gemini-3-flash-preview',
-  'gemini-3.5-flash'
+  'gemini-3.5-flash',
+  'deepseek-v4-pro',
+  'deepseek-v4-flash',
+  'glm-5.2',
+  'qwen3.7-max',
+  'qwen3.7-plus',
+  'MiniMax-M3',
+  'gpt-image-2'
 )
 $DefaultModel = $Models[0]
 
@@ -211,7 +218,7 @@ cfg["agent"] = a
 
 with open(path, "w", encoding="utf-8") as f:
     yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
-print("OK config.yaml 已写入 custom_providers[Octer] + model 块")
+print("OK config.yaml 已写入 custom_providers[Octer-beta] + model 块")
 '@
 
 $pyFile = Join-Path $env:TEMP 'octer_hermes_cfg.py'
