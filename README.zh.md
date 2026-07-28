@@ -45,8 +45,17 @@
 - `gemini-3.1-pro-preview`
 - `gemini-3-flash-preview`
 - `gemini-3.5-flash`
+- `gemini-3.1-flash-lite`
+- `v4-pro`（DeepSeek V4 Pro）
+- `v4-flash`（DeepSeek V4 Flash）
+- `glm-5.2`
+- `m3`（MiniMax M3）
+- `qwen3.7-max`
+- `qwen3.7-plus`
 
 你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
+
+此列表只包含适用于 Hermes / OpenClaw Agent 的对话与推理模型。官网目录中的生图、视频模型使用不同接口，不注册到这里的 `openai-completions` provider。
 
 **这些模型会全部注册到 provider 上**，所以客户端的模型选择器（下拉）里会列出全部模型 —— 菜单/参数只决定哪个是**当前激活/默认**模型。之后在客户端里可随时切换，无需重跑脚本。
 
