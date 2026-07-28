@@ -47,17 +47,8 @@ The menu (first item is the default) offers:
 - `gemini-3.1-pro-preview`
 - `gemini-3-flash-preview`
 - `gemini-3.5-flash`
-- `gemini-3.1-flash-lite`
-- `v4-pro` (DeepSeek V4 Pro)
-- `v4-flash` (DeepSeek V4 Flash)
-- `glm-5.2`
-- `m3` (MiniMax M3)
-- `qwen3.7-max`
-- `qwen3.7-plus`
 
 You can still pass any other model name explicitly as the 2nd argument; it's used as-is with a warning if it's not in the list.
-
-This list only includes chat and reasoning models suitable for Hermes / OpenClaw agents. Image and video models in the official catalog use different endpoints and are not registered on this `openai-completions` provider.
 
 **All of these models are registered on the provider**, so the client's model selector (dropdown) lists every one of them — the menu / argument only decides which is the *active/default* model. In your app you can switch between them at any time without re-running the script.
 

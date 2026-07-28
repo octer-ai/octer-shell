@@ -47,14 +47,7 @@ $Models = @(
   'claude-opus-4-8',
   'gemini-3.1-pro-preview',
   'gemini-3-flash-preview',
-  'gemini-3.5-flash',
-  'gemini-3.1-flash-lite',
-  'v4-pro',
-  'v4-flash',
-  'glm-5.2',
-  'm3',
-  'qwen3.7-max',
-  'qwen3.7-plus'
+  'gemini-3.5-flash'
 )
 $DefaultModel = $Models[0]
 
