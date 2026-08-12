@@ -14,6 +14,9 @@
   模型名称（可选）：不传则弹交互式菜单让你从支持列表里选（默认 gpt-5.5）；
   也可直接把模型名作为第二个参数传入跳过菜单。
 
+.PARAMETER BaseUrl
+  OpenAI 兼容代理地址；不传时使用正式 OClaw 地址。
+
 .EXAMPLE
   .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx
 
@@ -22,20 +25,22 @@
 
 .NOTES
   若系统禁止运行脚本，用：
-    powershell -ExecutionPolicy Bypass -File .\set-openclaw-model.ps1 <API_KEY> [MODEL]
+    powershell -ExecutionPolicy Bypass -File .\set-openclaw-model.ps1 <API_KEY> [MODEL] [BASE_URL]
 #>
 param(
-  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-openclaw-model.ps1 <API_KEY> [MODEL]")]
+  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-openclaw-model.ps1 <API_KEY> [MODEL] [BASE_URL]")]
   [string]$ApiKey,
   [Parameter(Mandatory = $false, Position = 1)]
-  [string]$Model = ""
+  [string]$Model = "",
+  [Parameter(Mandatory = $false, Position = 2)]
+  [string]$BaseUrl = "https://oclaw.octer.ai/v1"
 )
 
 $ErrorActionPreference = 'Stop'
 
 # ── 固定部分 ────────────────────────────────────────────
 $Provider = "octer"
-$BaseUrl  = "https://oclaw.octer.ai/v1"  # 接口地址（OpenAI 兼容）
+$BaseUrl  = $BaseUrl.TrimEnd('/')
 # ────────────────────────────────────────────────────────
 
 # ── 支持的模型列表（下拉选择用；第一项为默认）─────────────
