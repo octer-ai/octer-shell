@@ -45,6 +45,9 @@
 - `gemini-3.1-pro-preview`
 - `gemini-3-flash-preview`
 - `gemini-3.5-flash`
+- `deepseek-v4-flash`
+- `deepseek-v4-pro`
+- `glm-5.2`
 
 你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
 

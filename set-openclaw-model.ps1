@@ -52,7 +52,10 @@ $Models = @(
   'claude-opus-4-8',
   'gemini-3.1-pro-preview',
   'gemini-3-flash-preview',
-  'gemini-3.5-flash'
+  'gemini-3.5-flash',
+  'deepseek-v4-flash',
+  'deepseek-v4-pro',
+  'glm-5.2'
 )
 $DefaultModel = $Models[0]
 
