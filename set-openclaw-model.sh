@@ -27,6 +27,9 @@ MODELS=(
   "gemini-3.1-pro-preview"
   "gemini-3-flash-preview"
   "gemini-3.5-flash"
+  "deepseek-v4-flash"
+  "deepseek-v4-pro"
+  "glm-5.2"
 )
 DEFAULT_MODEL="${MODELS[0]}"
 
@@ -110,7 +113,7 @@ fi
 
 echo
 echo "✅ 已把 OpenClaw 切到: ${MODEL_ID} @ ${BASE_URL}"
-echo "🔑 没有 Key? 在 https://octer.ai/workspace → Me → Settings → API Keys 创建"
+echo "🔑 没有 Key? 打开 https://octer.ai/workspace/o/?next=/o → OClaw 页面复制或重置 API Key"
 echo
 echo "若自测卡住/失败，直接 curl 端点看是不是端点本身的问题："
 echo "  curl -sS ${BASE_URL}/chat/completions \\"

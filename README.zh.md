@@ -45,6 +45,9 @@
 - `gemini-3.1-pro-preview`
 - `gemini-3-flash-preview`
 - `gemini-3.5-flash`
+- `deepseek-v4-flash`
+- `deepseek-v4-pro`
+- `glm-5.2`
 
 你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
 
@@ -75,7 +78,7 @@
 ### 前置条件
 
 - 已安装 `hermes` CLI 并可在 `PATH` 中调用。
-- 拥有 Octer.ai API Key（在 [octer.ai/workspace](https://octer.ai/workspace) → Me → Settings → API Keys 创建）。
+- 拥有 OClaw API Key（在 [Octer 控制台 OClaw 页面](https://octer.ai/workspace/o/?next=/o)复制或重置）。
 - Python 3 且带 `pyyaml`。脚本会自动挑合适的解释器（优先 Hermes 自带 venv,一定有 `pyyaml`），没有则用 `pip install --user pyyaml` 兜底。
 
 ## set-hermes-model.ps1（Windows / PowerShell）
@@ -145,7 +148,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 ### 前置条件
 
 - 已安装 `openclaw` CLI 并可在 `PATH` 中调用。
-- 拥有 Octer.ai API Key(在 [octer.ai/workspace](https://octer.ai/workspace) → Me → Settings → API Keys 创建)。
+- 拥有 OClaw API Key（在 [Octer 控制台 OClaw 页面](https://octer.ai/workspace/o/?next=/o)复制或重置）。
 
 ## clear-hermes-model.sh
 

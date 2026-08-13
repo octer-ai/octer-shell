@@ -52,7 +52,10 @@ $Models = @(
   'claude-opus-4-8',
   'gemini-3.1-pro-preview',
   'gemini-3-flash-preview',
-  'gemini-3.5-flash'
+  'gemini-3.5-flash',
+  'deepseek-v4-flash',
+  'deepseek-v4-pro',
+  'glm-5.2'
 )
 $DefaultModel = $Models[0]
 
@@ -131,7 +134,7 @@ Remove-Job $job -Force -ErrorAction SilentlyContinue
 
 Write-Host ""
 Write-Host "OK 已把 OpenClaw 切到: $ModelId @ $BaseUrl" -ForegroundColor Green
-Write-Host "   没有 Key? 在 https://octer.ai/workspace -> Me -> Settings -> API Keys 创建"
+Write-Host "   没有 Key? 打开 https://octer.ai/workspace/o/?next=/o -> OClaw 页面复制或重置 API Key"
 
 $hint = @"
 若自测卡住/失败，直接 curl 端点看是不是端点本身的问题（PowerShell 用 curl.exe，单行）：
