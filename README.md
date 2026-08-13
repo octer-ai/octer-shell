@@ -77,7 +77,7 @@ A timestamped backup of `config.yaml` is written before any change.
 ### Prerequisites
 
 - `hermes` CLI installed and available on `PATH`.
-- An Octer.ai API key — create one at [octer.ai/workspace](https://octer.ai/workspace) → **Me → Settings → API Keys**.
+- An OClaw API key — copy or reset it on the [OClaw page in the Octer console](https://octer.ai/workspace/o/?next=/o).
 - Python 3 with `pyyaml`. The script auto-selects a suitable interpreter (preferring Hermes' own venv, which always has `pyyaml`) and falls back to `pip install --user pyyaml` if needed.
 
 ## set-hermes-model.ps1 (Windows / PowerShell)
@@ -147,7 +147,7 @@ Example (Linux / macOS):
 ### Prerequisites
 
 - `openclaw` CLI installed and on `PATH`.
-- An Octer.ai API key — create one at [octer.ai/workspace](https://octer.ai/workspace) → **Me → Settings → API Keys**.
+- An OClaw API key — copy or reset it on the [OClaw page in the Octer console](https://octer.ai/workspace/o/?next=/o).
 
 ## clear-hermes-model.sh
 
