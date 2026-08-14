@@ -60,9 +60,9 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 | Item | Value |
 |------|-------|
 | Endpoint | `https://oclaw.octer.ai/v1` |
-| Protocol | OpenAI-compatible (custom provider) |
+| Protocol | OpenAI-compatible Responses API (`codex_responses`) |
 | Model | picked from the menu, or the optional 2nd argument (default `gpt-5.5`) |
-| Provider slug | `octer` |
+| Provider slug | `custom:octer` |
 
 The **API key** is required; the **model** comes from the interactive menu or the optional 2nd argument (default `gpt-5.5`); everything else is hard-coded.
 
@@ -70,10 +70,10 @@ The **API key** is required; the **model** comes from the interactive menu or th
 
 It edits `config.yaml` directly (resolved via `hermes config path`) and writes both a named custom provider and the active model selection — Hermes only reads credentials from a **named** `custom_providers` entry, so setting `model.*` alone yields `No LLM provider configured`:
 
-1. **Custom provider entry** — adds/updates a `custom_providers` list item (`name: Octer`, `base_url`, `api_key`, `model`), de-duplicated by `base_url`. It also writes a `models:` dict registering **all** supported models (so the client's model dropdown lists them all) and sets `discover_models: false` so a live `/v1/models` probe doesn't overwrite that static list. The singular `model:` field is just the currently active model.
-2. **Select the model** — sets the `model` block: `provider=octer` (the provider slug, *not* the literal `custom`), `base_url`, `default=<selected model>` (default `gpt-5.5`), `api_key`, `max_tokens=65536`.
-3. **Disable fast mode** — sets `agent.reasoning_effort=none`, since the Octer model doesn't support reasoning/fast mode.
-4. **Apply** — runs `hermes gateway start` so the change takes effect immediately (the service goes stale after a config edit and must be re-generated with `start`; `restart` is not enough), prints the current config, then runs a self-test (`hermes -z "你好"`, capped at 60s).
+1. **Canonical custom provider** — removes every legacy entry whose identity is `Octer` / `custom:octer`, then writes exactly one `custom_providers` item. This remains idempotent even when an older config used a different Octer URL. All supported models are registered and `discover_models: false` keeps the picker stable.
+2. **Responses API routing** — sets `provider=custom:octer` and `api_mode=codex_responses`. This is required for GPT-5.5 tool calls with `reasoning_effort`; `/chat/completions` rejects that combination with HTTP 400.
+3. **Secret storage** — stores the key once as `OCTER_LLM_API_KEY` in Hermes' `.env` and references it with `key_env`; the key is no longer duplicated in `config.yaml`.
+4. **Apply and verify** — validates/enables an installed Octer platform plugin, performs `gateway stop` + `gateway start` to clear detached processes, and treats a failed or timed-out `hermes -z` self-test as a script failure.
 
 A timestamped backup of `config.yaml` is written before any change.
 
@@ -81,11 +81,11 @@ A timestamped backup of `config.yaml` is written before any change.
 
 - `hermes` CLI installed and available on `PATH`.
 - An OClaw API key — copy or reset it on the [OClaw page in the Octer console](https://octer.ai/workspace/o/?next=/o).
-- Python 3 with `pyyaml`. The script auto-selects a suitable interpreter (preferring Hermes' own venv, which always has `pyyaml`) and falls back to `pip install --user pyyaml` if needed.
+- Python 3 with `pyyaml`. The script auto-selects a suitable interpreter, preferring Hermes' own venv.
 
 ## set-hermes-model.ps1 (Windows / PowerShell)
 
-Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it shows the same interactive model menu (default `gpt-5.5`), writes the `custom_providers[Octer]` entry + `model` block, disables `agent.reasoning_effort`, runs `hermes gateway start`, and self-tests.
+Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes one `custom:octer` provider, selects the Responses API, stores the key in `.env`, fully reloads the Gateway, and runs the same bounded self-test.
 
 ### Usage
 
@@ -164,10 +164,10 @@ Remove the Octer custom-model configuration and restore Hermes to its default. H
 
 It strips every Octer-related entry while leaving other providers (e.g. `qwen`) intact:
 
-1. Drops the `model` override keys when `model.base_url` points at Octer.
-2. Removes any `providers` / `custom_providers` entries whose key name or `api`/`base_url` mentions `octer`.
-3. Removes the `agent.reasoning_effort` override.
-4. Deletes `OCTER_LLM_API_KEY` from the `.env` file if present, then runs `hermes gateway start` to apply.
+1. Drops the `model` override keys when its provider or URL points at Octer.
+2. Removes Octer entries from both the list-shaped `custom_providers` schema and the keyed `providers` schema.
+3. Deletes `OCTER_LLM_API_KEY` from `.env`.
+4. Fully reloads the Gateway with `stop` + `start`.
 
 To re-enable the Octer model afterwards, just run `./set-hermes-model.sh <API_KEY>` again.
 

@@ -1,35 +1,12 @@
 <#
 .SYNOPSIS
-  配置 Hermes Agent 使用 Octer 自定义大模型，并选中它（Windows / PowerShell 版）。
-
+  Configure Hermes Agent to use the Octer Responses API.
 .DESCRIPTION
-  与 set-hermes-model.sh 等价的 Windows 实现。
-  关键：Hermes 取凭证时只认「命名的 custom provider」(custom_providers 列表条目)，
-  光设 model.* 会报 "No LLM provider configured"。本脚本按 hermes 自己 _save_custom_provider
-  的结构，往 config.yaml 写 custom_providers 列表条目 + model 块。
-
-.PARAMETER ApiKey
-  Octer 的 API Key（evo_ 开头）。
-
-.PARAMETER Model
-  模型名称（可选）：不传则弹交互式菜单让你从支持列表里选（默认 gpt-5.5）；
-  也可直接把模型名作为第二个参数传入跳过菜单。
-
-.PARAMETER BaseUrl
-  OpenAI 兼容代理地址；不传时使用正式 OClaw 地址。
-
-.EXAMPLE
-  .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx
-
-.EXAMPLE
-  .\set-hermes-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview
-
-.NOTES
-  若系统禁止运行脚本，用：
-    powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL] [BASE_URL]
+  Writes one canonical custom:octer provider, stores the API key in Hermes'
+  .env file, reloads the Gateway, and runs a 60-second end-to-end self-test.
 #>
 param(
-  [Parameter(Mandatory = $true, Position = 0, HelpMessage = "用法: .\set-hermes-model.ps1 <API_KEY> [MODEL] [BASE_URL]")]
+  [Parameter(Mandatory = $true, Position = 0)]
   [string]$ApiKey,
   [Parameter(Mandatory = $false, Position = 1)]
   [string]$Model = "",
@@ -39,13 +16,11 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-# ── 固定部分 ────────────────────────────────────────────
-$NAME      = "Octer"
-$BASE_URL  = $BaseUrl.TrimEnd('/')
-$MAX_TOKENS = "65536"
-# ────────────────────────────────────────────────────────
+if ($ApiKey -notmatch '^evo_[A-Za-z0-9]{26,}$') {
+  Write-Error 'API Key 必须以 evo_ 开头，且长度至少 30 个字符'
+  exit 2
+}
 
-# ── 支持的模型列表（下拉选择用；第一项为默认）─────────────
 $Models = @(
   'gpt-5.5',
   'gpt-5.6-sol',
@@ -61,9 +36,7 @@ $Models = @(
 )
 $DefaultModel = $Models[0]
 
-# 决定模型：① 传了 -Model 就用它；② 否则交互式弹「下拉」菜单；
-# ③ 非交互环境（输入被重定向/CI）回退默认。
-function Select-Model([string]$Passed) {
+function Select-OcterModel([string]$Passed) {
   if ($Passed) {
     if ($Models -notcontains $Passed) {
       Write-Host "! '$Passed' 不在内置列表里，仍按你指定的使用。" -ForegroundColor Yellow
@@ -82,187 +55,101 @@ function Select-Model([string]$Passed) {
   }
   $choice = Read-Host ("输入编号 [1-{0}]" -f $Models.Count)
   if ([string]::IsNullOrWhiteSpace($choice)) { return $DefaultModel }
-  $n = 0
-  if ([int]::TryParse($choice, [ref]$n) -and $n -ge 1 -and $n -le $Models.Count) {
-    return $Models[$n - 1]
+  $number = 0
+  if ([int]::TryParse($choice, [ref]$number) -and $number -ge 1 -and $number -le $Models.Count) {
+    return $Models[$number - 1]
   }
   Write-Host "! 无效输入 '$choice'，使用默认 $DefaultModel" -ForegroundColor Yellow
   return $DefaultModel
 }
 
-$MODEL = Select-Model $Model
-Write-Host "-> 选定模型: $MODEL"
-# ────────────────────────────────────────────────────────
+function Test-Command($Name) {
+  return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+}
 
-function Test-Cmd($name) { $null -ne (Get-Command $name -ErrorAction SilentlyContinue) }
-
-if (-not (Test-Cmd 'hermes')) {
-  Write-Host "X 未找到 hermes CLI（需在装了 hermes 的机器执行）" -ForegroundColor Red
+if (-not (Test-Command 'hermes')) {
+  Write-Error '未找到 hermes CLI（需在装了 Hermes 的机器执行）'
   exit 1
 }
 
-$CFG = ((& hermes config path) | Out-String).Trim()
-Write-Host "config: $CFG"
-if (Test-Path -LiteralPath $CFG) {
-  $stamp = Get-Date -Format 'yyyyMMddHHmmss'
-  Copy-Item -LiteralPath $CFG -Destination "$CFG.bak.$stamp" -Force
+$SelectedModel = Select-OcterModel $Model
+Write-Host "-> 选定模型: $SelectedModel"
+
+$Helper = Join-Path $PSScriptRoot 'hermes_config.py'
+if (-not (Test-Path -LiteralPath $Helper)) {
+  Write-Error "缺少共享配置器: $Helper"
+  exit 1
 }
 
-# 选一个带 pyyaml 的 python（系统 python 常常没装；hermes 自己的 venv 一定有）。
-$HERMES_HOME = if ($CFG) { Split-Path -Parent $CFG } else { Join-Path $env:USERPROFILE '.hermes' }
+$ConfigPath = ((& hermes config path) | Out-String).Trim()
+$EnvPath = ((& hermes config env-path) | Out-String).Trim()
+$HermesHome = Split-Path -Parent $ConfigPath
+$HermesBin = (Get-Command hermes).Source
+Write-Host "config: $ConfigPath"
+Write-Host "env:    $EnvPath"
 
-# 候选解释器：每项是一个「可执行 + 前置参数」组合
-$candidates = @(
-  @{ Exe = (Join-Path $HERMES_HOME 'hermes-agent\venv\Scripts\python.exe'); Pre = @() },
-  @{ Exe = 'py';      Pre = @('-3') },
-  @{ Exe = 'python';  Pre = @() },
+$Candidates = @(
+  @{ Exe = (Join-Path $HermesHome 'hermes-agent\venv\Scripts\python.exe'); Pre = @() },
+  @{ Exe = 'py'; Pre = @('-3') },
+  @{ Exe = 'python'; Pre = @() },
   @{ Exe = 'python3'; Pre = @() }
 )
 
-function Test-PyYaml($exe, $pre) {
+function Test-PyYaml($Exe, $Pre) {
   try {
-    if ($exe -ne 'py' -and $exe -notmatch '[\\/]' -and -not (Test-Cmd $exe)) { return $false }
-    if ($exe -match '[\\/]' -and -not (Test-Path -LiteralPath $exe)) { return $false }
-    & $exe @pre -c "import yaml" 2>$null
-    return ($LASTEXITCODE -eq 0)
+    if ($Exe -match '[\\/]' -and -not (Test-Path -LiteralPath $Exe)) { return $false }
+    if ($Exe -notmatch '[\\/]' -and $Exe -ne 'py' -and -not (Test-Command $Exe)) { return $false }
+    & $Exe @Pre -c 'import yaml' 2>$null
+    return $LASTEXITCODE -eq 0
   } catch { return $false }
 }
 
-$PY = $null; $PYPRE = @()
-foreach ($c in $candidates) {
-  if (Test-PyYaml $c.Exe $c.Pre) { $PY = $c.Exe; $PYPRE = $c.Pre; break }
-}
-
-if (-not $PY) {
-  # 兜底：给系统 python 装 pyyaml（--user，无需管理员）
-  Write-Host "! 未找到带 pyyaml 的 python，尝试 pip 安装..." -ForegroundColor Yellow
-  foreach ($c in @(@{Exe='py';Pre=@('-3')}, @{Exe='python';Pre=@()}, @{Exe='python3';Pre=@()})) {
-    if ($c.Exe -eq 'py' -or (Test-Cmd $c.Exe)) {
-      try { & $c.Exe @($c.Pre) -m pip install --user pyyaml 2>$null | Out-Null } catch {}
-      if (Test-PyYaml $c.Exe $c.Pre) { $PY = $c.Exe; $PYPRE = $c.Pre; break }
-    }
+$Python = $null
+$PythonPrefix = @()
+foreach ($Candidate in $Candidates) {
+  if (Test-PyYaml $Candidate.Exe $Candidate.Pre) {
+    $Python = $Candidate.Exe
+    $PythonPrefix = $Candidate.Pre
+    break
   }
 }
-
-if (-not $PY) {
-  Write-Host "X 仍找不到带 pyyaml 的 python。手动装一个再重试，例如: py -3 -m pip install pyyaml" -ForegroundColor Red
+if (-not $Python) {
+  Write-Error '找不到带 PyYAML 的 Python；请先修复 Hermes 自带 venv'
   exit 1
 }
-Write-Host ("python: " + ($PY + ' ' + ($PYPRE -join ' ')).Trim())
+Write-Host ("python: " + ($Python + ' ' + ($PythonPrefix -join ' ')).Trim())
 
-# provider slug = 名字归一化（小写、空格转 -），custom provider 解析按它匹配
-$SLUG = ($NAME.ToLower() -replace ' ', '-')
+$ModelsCsv = $Models -join ','
+$ApiKey | & $Python @PythonPrefix $Helper set `
+  --config $ConfigPath `
+  --env $EnvPath `
+  --base-url $BaseUrl `
+  --model $SelectedModel `
+  --models-csv $ModelsCsv `
+  --max-tokens 65536
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-# ── 与 .sh 版完全一致的 python 改写逻辑（写临时 .py，UTF-8 无 BOM）──
-$pyCode = @'
-import os, sys, yaml
-path = sys.argv[1]
-try:
-    with open(path, encoding="utf-8") as f:
-        cfg = yaml.safe_load(f) or {}
-except FileNotFoundError:
-    cfg = {}
+$PluginManifest = Join-Path $HermesHome 'plugins\platforms\octer\plugin.yaml'
+if (Test-Path -LiteralPath $PluginManifest) {
+  Write-Host '~ 检查已安装的 Octer 平台插件...'
+  & hermes plugins doctor platforms/octer
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+  & hermes plugins enable platforms/octer
+  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+}
 
-NAME = os.environ["NAME"]
-SLUG = os.environ["SLUG"]
-BASE = os.environ["BASE_URL"].rstrip("/")
-KEY  = os.environ["API_KEY"]
-MODEL = os.environ["MODEL"]
-MODELS_ALL = [m.strip() for m in os.environ.get("MODELS_LIST", "").splitlines() if m.strip()]
-MAXT = int(os.environ["MAX_TOKENS"])
-
-# 1) custom_providers 列表条目（按 base_url 去重，命中则更新）
-cps = cfg.get("custom_providers")
-if not isinstance(cps, list):
-    cps = []
-entry = None
-for e in cps:
-    if isinstance(e, dict) and str(e.get("base_url", "")).rstrip("/") == BASE:
-        entry = e; break
-if entry is None:
-    entry = {}
-    cps.append(entry)
-entry.update({"name": NAME, "base_url": BASE, "api_key": KEY, "model": MODEL})
-# 注册全部支持的模型，让客户端下拉能列出所有模型（单数 model 只是当前激活项）。
-# models 用 dict（key=模型 id），并关闭 discover_models 以免 /v1/models 探测把静态列表覆盖回去。
-models_map = entry.get("models")
-if not isinstance(models_map, dict):
-    models_map = {}
-for mid in MODELS_ALL:
-    if mid not in models_map:
-        models_map[mid] = {}
-if MODEL not in models_map:
-    models_map[MODEL] = {}
-entry["models"] = models_map
-entry["discover_models"] = False
-cfg["custom_providers"] = cps
-
-# 2) model 块：选中该 custom 端点
-m = cfg.get("model")
-if not isinstance(m, dict):
-    m = {}
-m.update({
-    "provider": SLUG,        # 关键：按 provider slug 匹配命名 custom provider，而非字面量 "custom"
-    "base_url": BASE,
-    "default": MODEL,
-    "api_key": KEY,
-    "max_tokens": MAXT,
-})
-cfg["model"] = m
-
-# 3) Octer 不支持 fast 模式 —— 关闭 reasoning
-a = cfg.get("agent")
-if not isinstance(a, dict):
-    a = {}
-a["reasoning_effort"] = "none"
-cfg["agent"] = a
-
-with open(path, "w", encoding="utf-8") as f:
-    yaml.safe_dump(cfg, f, allow_unicode=True, sort_keys=False)
-print("OK config.yaml 已写入 custom_providers[Octer] + model 块")
-'@
-
-$pyFile = Join-Path $env:TEMP 'octer_hermes_cfg.py'
-[System.IO.File]::WriteAllText($pyFile, $pyCode, (New-Object System.Text.UTF8Encoding $false))
-
-$env:NAME        = $NAME
-$env:SLUG        = $SLUG
-$env:BASE_URL    = $BASE_URL
-$env:API_KEY     = $ApiKey
-$env:MODEL       = $MODEL
-$env:MODELS_LIST = ($Models -join "`n")
-$env:MAX_TOKENS  = $MAX_TOKENS
-
-& $PY @PYPRE $pyFile $CFG
-if ($LASTEXITCODE -ne 0) { Write-Host "X 写入 config.yaml 失败" -ForegroundColor Red; exit 1 }
-
-Remove-Item -LiteralPath $pyFile -ErrorAction SilentlyContinue
-
-Write-Host "OK 已配置并选中: $NAME -> $MODEL @ $BASE_URL（已关闭 fast/reasoning）" -ForegroundColor Green
-
-# ── 启用：启动/刷新 gateway 让新模型生效 ─────────────────
-Write-Host "~ 启动 hermes gateway..."
+Write-Host '~ 完整重载 Hermes Gateway...'
+& hermes gateway stop
 & hermes gateway start
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & hermes gateway status
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "-- 当前配置 --"
+Write-Host '-- 当前配置 --'
 (& hermes config show) | Select-String -Pattern 'Model:|provider|reasoning'
 
-# ── 自测（最多等 60s）──────────────────────────────────
-Write-Host ""
-Write-Host '* 自测(最多等 60s): hermes -z "你好"'
-$job = Start-Job -ScriptBlock { & hermes -z "你好" 2>&1 }
-if (Wait-Job $job -Timeout 60) {
-  Receive-Job $job
-} else {
-  Stop-Job $job
-  Write-Host "! 自测超时/失败。配置已写好；卡住多半是端点没响应，手动排查见下方提示。" -ForegroundColor Yellow
-}
-Remove-Job $job -Force -ErrorAction SilentlyContinue
-
-Write-Host ""
-$hint = @"
-若 hermes -z 一直卡住，直接 curl 端点看是不是端点本身的问题（PowerShell 里用 curl.exe，单行）：
-  curl.exe -sS $BASE_URL/chat/completions -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" -d '{"model":"$MODEL","messages":[{"role":"user","content":"你好"}]}'
-"@
-Write-Host $hint
+Write-Host ''
+Write-Host '* 自测（最多 60s）: hermes -z "请只回复 OK"'
+& $Python @PythonPrefix $Helper self-test --hermes-bin $HermesBin --timeout 60
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Write-Host 'OK Hermes + Octer Responses API 自测通过' -ForegroundColor Green

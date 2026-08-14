@@ -58,9 +58,9 @@
 | 项目 | 值 |
 |------|-----|
 | 接口地址 | `https://oclaw.octer.ai/v1` |
-| API 协议类型 | OpenAI 兼容协议（custom provider） |
+| API 协议类型 | OpenAI 兼容 Responses API（`codex_responses`） |
 | 模型名称 | 从菜单选择，或用第二个参数指定（默认 `gpt-5.5`） |
-| Provider 标识 | `octer` |
+| Provider 标识 | `custom:octer` |
 
 **API Key** 必填；**模型名称**来自交互式菜单或可选的第二个参数（缺省 `gpt-5.5`），其余固定。
 
@@ -68,10 +68,10 @@
 
 直接改 `config.yaml`(由 `hermes config path` 解析),同时写「命名的 custom provider」和「选中的 model」—— Hermes 取凭证时只认 `custom_providers` 列表里的命名条目,光设 `model.*` 会报 `No LLM provider configured`：
 
-1. **custom provider 条目**：往 `custom_providers` 列表加/更新一项（`name: Octer`、`base_url`、`api_key`、`model`），按 `base_url` 去重。同时写入 `models:` 字典注册**全部**支持的模型（让客户端下拉能列全），并设 `discover_models: false`，避免实时探测 `/v1/models` 把静态列表覆盖回去；单数 `model:` 只是当前激活模型。
-2. **选中模型**：写 `model` 块 —— `provider=octer`（用 provider slug,而非字面量 `custom`）、`base_url`、`default=<所选模型>`（缺省 `gpt-5.5`）、`api_key`、`max_tokens=65536`。
-3. **关闭 fast 模式**：设 `agent.reasoning_effort=none`（Octer 模型不支持 reasoning/fast 模式）。
-4. **生效**：跑 `hermes gateway start` 让新模型立即生效（改配置后 service 会 stale,必须 `start` 重新生成,`restart` 不行），打印当前配置,再自测一次（`hermes -z "你好"`,最多等 60s）。
+1. **唯一 custom provider**：先删除身份为 `Octer` / `custom:octer` 的全部旧条目，再写入唯一一项；即使旧配置使用过不同 Octer URL，也不会继续产生重复 provider。所有支持模型仍会注册到下拉列表，并设置 `discover_models: false`。
+2. **Responses API 路由**：写入 `provider=custom:octer` 和 `api_mode=codex_responses`。GPT-5.5 携带工具与 `reasoning_effort` 时，`/chat/completions` 会返回 HTTP 400，必须走 `/responses`。
+3. **安全保存 Key**：只在 Hermes `.env` 中保存一次 `OCTER_LLM_API_KEY`，provider 通过 `key_env` 引用，不再把 Key 重复写进 `config.yaml`。
+4. **生效并验证**：检查并启用已安装的 Octer 平台插件，执行 `gateway stop` + `gateway start` 清理残留进程；`hermes -z` 失败或超时会让脚本明确返回失败。
 
 改动前会写一份带时间戳的 `config.yaml` 备份。
 
@@ -79,11 +79,11 @@
 
 - 已安装 `hermes` CLI 并可在 `PATH` 中调用。
 - 拥有 OClaw API Key（在 [Octer 控制台 OClaw 页面](https://octer.ai/workspace/o/?next=/o)复制或重置）。
-- Python 3 且带 `pyyaml`。脚本会自动挑合适的解释器（优先 Hermes 自带 venv,一定有 `pyyaml`），没有则用 `pip install --user pyyaml` 兜底。
+- Python 3 且带 `pyyaml`。脚本会自动挑合适的解释器，优先使用 Hermes 自带 venv。
 
 ## set-hermes-model.ps1（Windows / PowerShell）
 
-Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：同样弹出交互式模型菜单（默认 `gpt-5.5`），往 `config.yaml` 写 `custom_providers[Octer]` 列表条目 + `model` 块、关闭 `agent.reasoning_effort`，再 `hermes gateway start` 并自测。
+Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：写入唯一的 `custom:octer` provider、选择 Responses API、把 Key 保存到 `.env`、完整重载 Gateway，并执行同样的限时自测。
 
 ### 用法
 
@@ -162,10 +162,10 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 
 它会把所有 Octer 相关项清掉，保留 `qwen` 等其它 provider：
 
-1. 当 `model.base_url` 指向 Octer 时，清掉 `model` 覆盖键。
-2. 删除 `providers` / `custom_providers` 里 key 名或 `api`/`base_url` 命中 `octer` 的条目。
-3. 删除 `agent.reasoning_effort` 覆盖。
-4. 若 `.env` 里有 `OCTER_LLM_API_KEY` 则删掉，再 `hermes gateway start` 生效。
+1. 当 `model.provider` 或 `model.base_url` 指向 Octer 时，清掉模型覆盖键。
+2. 同时清理列表形式的 `custom_providers` 和字典形式的 `providers` 中的 Octer 条目。
+3. 从 `.env` 删除 `OCTER_LLM_API_KEY`。
+4. 通过 `gateway stop` + `gateway start` 完整重载服务。
 
 之后想恢复 Octer 模型，重新跑 `./set-hermes-model.sh <API_KEY>` 即可。
 
