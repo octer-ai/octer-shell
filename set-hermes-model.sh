@@ -64,10 +64,6 @@ echo "→ 选定模型: ${MODEL}"
 
 command -v hermes >/dev/null 2>&1 || { echo "❌ 未找到 hermes CLI（需在装了 hermes 的机器执行）"; exit 1; }
 
-SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-HELPER="$SCRIPT_DIR/hermes_config.py"
-[ -f "$HELPER" ] || { echo "❌ 缺少共享配置器: $HELPER"; exit 1; }
-
 CFG="$(hermes config path)"
 ENVF="$(hermes config env-path)"
 HERMES_BIN="$(command -v hermes)"
@@ -91,6 +87,38 @@ if [ -z "$PY" ]; then
   exit 1
 fi
 echo "python: $PY"
+
+# In a repository checkout the helper lives beside this script. When the
+# script is piped to Bash there is no script file, so download the helper to a
+# temporary path and remove it automatically on exit.
+HELPER=""
+TEMP_HELPER=""
+cleanup_temp_helper() {
+  if [ -n "$TEMP_HELPER" ] && [ -f "$TEMP_HELPER" ]; then
+    rm -f -- "$TEMP_HELPER"
+  fi
+}
+trap cleanup_temp_helper EXIT
+
+SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
+if [ -n "$SCRIPT_SOURCE" ] && [ -f "$SCRIPT_SOURCE" ]; then
+  SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$SCRIPT_SOURCE")" && pwd)"
+  [ -f "$SCRIPT_DIR/hermes_config.py" ] && HELPER="$SCRIPT_DIR/hermes_config.py"
+fi
+
+if [ -z "$HELPER" ]; then
+  command -v curl >/dev/null 2>&1 || {
+    echo "❌ curl 管道安装需要 curl 来下载共享配置器" >&2
+    exit 1
+  }
+  HELPER_URL="${OCTER_HERMES_CONFIG_URL:-https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/hermes_config.py}"
+  TEMP_HELPER="$(mktemp "${TMPDIR:-/tmp}/octer-hermes-config.XXXXXX")"
+  echo "⬇️  下载共享配置器..."
+  curl -fsSL --proto '=https' --tlsv1.2 "$HELPER_URL" -o "$TEMP_HELPER"
+  HELPER="$TEMP_HELPER"
+fi
+
+"$PY" -c 'import ast, pathlib, sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"), filename=sys.argv[1])' "$HELPER"
 
 MODELS_CSV="$(IFS=,; printf '%s' "${MODELS[*]}")"
 printf '%s' "$API_KEY" | "$PY" "$HELPER" set \

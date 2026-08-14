@@ -77,8 +77,14 @@ Write-Host "-> 选定模型: $SelectedModel"
 
 $Helper = Join-Path $PSScriptRoot 'hermes_config.py'
 if (-not (Test-Path -LiteralPath $Helper)) {
-  Write-Error "缺少共享配置器: $Helper"
-  exit 1
+  $HelperUrl = if ($env:OCTER_HERMES_CONFIG_URL) {
+    $env:OCTER_HERMES_CONFIG_URL
+  } else {
+    'https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/hermes_config.py'
+  }
+  $Helper = Join-Path ([IO.Path]::GetTempPath()) ("octer-hermes-config-{0}.py" -f [guid]::NewGuid())
+  Write-Host 'v 下载共享配置器...'
+  Invoke-WebRequest -UseBasicParsing -Uri $HelperUrl -OutFile $Helper
 }
 
 $ConfigPath = ((& hermes config path) | Out-String).Trim()
@@ -118,6 +124,9 @@ if (-not $Python) {
   exit 1
 }
 Write-Host ("python: " + ($Python + ' ' + ($PythonPrefix -join ' ')).Trim())
+
+& $Python @PythonPrefix -c 'import ast,pathlib,sys; ast.parse(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"), filename=sys.argv[1])' $Helper
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $ModelsCsv = $Models -join ','
 $ApiKey | & $Python @PythonPrefix $Helper set `
