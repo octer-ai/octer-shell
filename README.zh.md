@@ -68,7 +68,7 @@
 
 直接改 `config.yaml`(由 `hermes config path` 解析),同时写「命名的 custom provider」和「选中的 model」—— Hermes 取凭证时只认 `custom_providers` 列表里的命名条目,光设 `model.*` 会报 `No LLM provider configured`：
 
-1. **唯一 custom provider**：先删除身份为 `Octer` / `custom:octer` 的全部旧条目，再写入唯一一项；即使旧配置使用过不同 Octer URL，也不会继续产生重复 provider。所有支持模型仍会注册到下拉列表，并设置 `discover_models: false`。
+1. **唯一 custom provider**：通过 provider 身份（包括 `Octer-2` 等带后缀的旧别名）、任意 `*.octer.ai` 接口地址或 Octer Key 环境变量识别旧渠道；从两种 Hermes provider 配置结构中全部移除，再写入唯一一项。重复执行安装脚本仍保持幂等。所有支持模型仍会注册到下拉列表，并设置 `discover_models: false`。
 2. **Responses API 路由**：写入 `provider=custom:octer` 和 `api_mode=codex_responses`。GPT-5.5 携带工具与 `reasoning_effort` 时，`/chat/completions` 会返回 HTTP 400，必须走 `/responses`。
 3. **安全保存 Key**：只在 Hermes `.env` 中保存一次 `OCTER_LLM_API_KEY`，provider 通过 `key_env` 引用，不再把 Key 重复写进 `config.yaml`。
 4. **生效并验证**：检查并启用已安装的 Octer 平台插件，执行 `gateway stop` + `gateway start` 清理残留进程；`hermes -z` 失败或超时会让脚本明确返回失败。

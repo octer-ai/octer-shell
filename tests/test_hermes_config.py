@@ -68,6 +68,46 @@ class HermesConfigTests(unittest.TestCase):
         )
         self.assertEqual(set(result["providers"]), {"other"})
 
+    def test_octer_aliases_urls_and_key_envs_collapse_to_one(self):
+        source = {
+            "custom_providers": [
+                {"name": "Octer-2", "base_url": "https://legacy.invalid/v1"},
+                {"name": "OClaw", "api": "https://oclaw.octer.ai/v1"},
+                {
+                    "name": "Legacy Gateway",
+                    "base_url": "https://legacy.invalid/v1",
+                    "apiKeyEnv": "OCTER_LLM_API_KEY",
+                },
+                {"name": "Keep Me", "base_url": "https://example.test/v1"},
+            ],
+            "providers": {
+                "backup": {"name": "Backup", "api": "https://test.octer.ai/v1"},
+                "other": {"name": "Other", "api": "https://other.test/v1"},
+            },
+        }
+
+        first = configure_data(
+            source,
+            base_url="https://oclaw.octer.ai/v1",
+            model="gpt-5.5",
+            models=["gpt-5.5"],
+            max_tokens=65536,
+        )
+        second = configure_data(
+            first,
+            base_url="https://oclaw.octer.ai/v1",
+            model="gpt-5.5",
+            models=["gpt-5.5"],
+            max_tokens=65536,
+        )
+
+        self.assertEqual(first, second)
+        self.assertEqual(
+            [entry["name"] for entry in second["custom_providers"]],
+            ["Octer", "Keep Me"],
+        )
+        self.assertEqual(set(second["providers"]), {"other"})
+
     def test_clear_removes_list_and_keyed_forms(self):
         source = {
             "model": {

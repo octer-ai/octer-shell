@@ -70,7 +70,7 @@ The **API key** is required; the **model** comes from the interactive menu or th
 
 It edits `config.yaml` directly (resolved via `hermes config path`) and writes both a named custom provider and the active model selection — Hermes only reads credentials from a **named** `custom_providers` entry, so setting `model.*` alone yields `No LLM provider configured`:
 
-1. **Canonical custom provider** — removes every legacy entry whose identity is `Octer` / `custom:octer`, then writes exactly one `custom_providers` item. This remains idempotent even when an older config used a different Octer URL. All supported models are registered and `discover_models: false` keeps the picker stable.
+1. **Canonical custom provider** — detects legacy Octer entries by provider identity (including suffixed aliases such as `Octer-2`), any `*.octer.ai` endpoint, or the Octer key environment variable; removes all of them from both supported provider schemas; then writes exactly one `custom_providers` item. Re-running the installer is idempotent. All supported models are registered and `discover_models: false` keeps the picker stable.
 2. **Responses API routing** — sets `provider=custom:octer` and `api_mode=codex_responses`. This is required for GPT-5.5 tool calls with `reasoning_effort`; `/chat/completions` rejects that combination with HTTP 400.
 3. **Secret storage** — stores the key once as `OCTER_LLM_API_KEY` in Hermes' `.env` and references it with `key_env`; the key is no longer duplicated in `config.yaml`.
 4. **Apply and verify** — validates/enables an installed Octer platform plugin, performs `gateway stop` + `gateway start` to clear detached processes, and treats a failed or timed-out `hermes -z` self-test as a script failure.

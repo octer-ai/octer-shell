@@ -25,10 +25,23 @@ OCTER_KEY_ENV = "OCTER_LLM_API_KEY"
 OCTER_API_MODE = "codex_responses"
 _OCTER_ALIASES = {"octer", "custom:octer"}
 _API_KEY_RE = re.compile(r"evo_[A-Za-z0-9]{26,}")
+_OCTER_IDENTITY_RE = re.compile(r"(?:^|[:_-])octer(?:$|[:_-])")
+_OCTER_KEY_ENVS = {"octer_llm_api_key"}
 
 
 def _identity(value: Any) -> str:
     return str(value or "").strip().lower().replace(" ", "-")
+
+
+def _is_octer_url(value: Any) -> bool:
+    raw = str(value or "").strip()
+    if not raw:
+        return False
+    try:
+        hostname = (urlsplit(raw).hostname or "").lower().rstrip(".")
+    except ValueError:
+        return False
+    return hostname == "octer.ai" or hostname.endswith(".octer.ai")
 
 
 def _is_octer_entry(entry: Any, provider_key: str = "") -> bool:
@@ -38,8 +51,29 @@ def _is_octer_entry(entry: Any, provider_key: str = "") -> bool:
         _identity(provider_key),
         _identity(entry.get("name")),
         _identity(entry.get("provider_key")),
+        _identity(entry.get("provider")),
+        _identity(entry.get("id")),
+        _identity(entry.get("slug")),
     }
-    return bool(identities & _OCTER_ALIASES)
+    if any(
+        identity in _OCTER_ALIASES or _OCTER_IDENTITY_RE.search(identity)
+        for identity in identities
+    ):
+        return True
+
+    key_envs = {
+        _identity(entry.get("key_env")),
+        _identity(entry.get("api_key_env")),
+        _identity(entry.get("keyEnv")),
+        _identity(entry.get("apiKeyEnv")),
+    }
+    if key_envs & _OCTER_KEY_ENVS:
+        return True
+
+    return any(
+        _is_octer_url(entry.get(field))
+        for field in ("base_url", "baseUrl", "url", "api")
+    )
 
 
 def normalize_base_url(raw: str) -> str:
