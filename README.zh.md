@@ -58,7 +58,7 @@
 | 项目 | 值 |
 |------|-----|
 | 接口地址 | `https://oclaw.octer.ai/v1` |
-| API 协议类型 | OpenAI 兼容 Responses API（`codex_responses`） |
+| API 协议类型 | OpenAI 兼容 Chat Completions API（`chat_completions`） |
 | 模型名称 | 从菜单选择，或用第二个参数指定（默认 `gpt-5.5`） |
 | Provider 标识 | `custom:octer` |
 
@@ -71,9 +71,10 @@
 通过 `curl | bash` 执行时，脚本会自动把仓库中的 `hermes_config.py` 下载到临时文件，并在安装退出时删除；从完整仓库执行时仍优先使用脚本旁边的本地 helper。
 
 1. **唯一 custom provider**：通过 provider 身份（包括 `Octer-2` 等带后缀的旧别名）、任意 `*.octer.ai` 接口地址或 Octer Key 环境变量识别旧渠道；从两种 Hermes provider 配置结构中全部移除，再写入唯一一项。重复执行安装脚本仍保持幂等。所有支持模型仍会注册到下拉列表，并设置 `discover_models: false`。
-2. **Responses API 路由**：写入 `provider=custom:octer` 和 `api_mode=codex_responses`。GPT-5.5 携带工具与 `reasoning_effort` 时，`/chat/completions` 会返回 HTTP 400，必须走 `/responses`。
-3. **安全保存 Key**：只在 Hermes `.env` 中保存一次 `OCTER_LLM_API_KEY`，provider 通过 `key_env` 引用，不再把 Key 重复写进 `config.yaml`。
-4. **生效并验证**：检查并启用已安装的 Octer 平台插件，执行 `gateway stop` + `gateway start` 清理残留进程；`hermes -z` 失败或超时会让脚本明确返回失败。
+2. **统一 Chat Completions 路由**：所有模型都写入 `provider=custom:octer` 和 `api_mode=chat_completions`。Octer 的 `/responses` 尚未覆盖全部模型（例如 GLM-5.2），而 `/chat/completions` 可以正常调用。
+3. **GPT-5.x 兼容处理**：为 GPT-5.x 写入按模型的 `agent.reasoning_overrides: false`。Chat Completions 支持 GPT 工具调用，但不接受工具与启用的 `reasoning_effort` 同时出现；其它模型仍保留服务端默认 reasoning 行为。
+4. **安全保存 Key**：只在 Hermes `.env` 中保存一次 `OCTER_LLM_API_KEY`，provider 通过 `key_env` 引用，不再把 Key 重复写进 `config.yaml`。
+5. **生效并验证**：检查并启用已安装的 Octer 平台插件，执行 `gateway stop` + `gateway start` 清理残留进程；`hermes -z` 失败或超时会让脚本明确返回失败。
 
 改动前会写一份带时间戳的 `config.yaml` 备份。
 
@@ -85,7 +86,7 @@
 
 ## set-hermes-model.ps1（Windows / PowerShell）
 
-Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：写入唯一的 `custom:octer` provider、选择 Responses API、把 Key 保存到 `.env`、完整重载 Gateway，并执行同样的限时自测。
+Windows 上用这个 PowerShell 版，行为与 `set-hermes-model.sh` 完全一致：写入唯一的 `custom:octer` provider、选择 Chat Completions、把 Key 保存到 `.env`、完整重载 Gateway，并执行同样的限时自测。
 
 ### 用法
 

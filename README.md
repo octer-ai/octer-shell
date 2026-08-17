@@ -60,7 +60,7 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 | Item | Value |
 |------|-------|
 | Endpoint | `https://oclaw.octer.ai/v1` |
-| Protocol | OpenAI-compatible Responses API (`codex_responses`) |
+| Protocol | OpenAI-compatible Chat Completions API (`chat_completions`) |
 | Model | picked from the menu, or the optional 2nd argument (default `gpt-5.5`) |
 | Provider slug | `custom:octer` |
 
@@ -73,9 +73,10 @@ It edits `config.yaml` directly (resolved via `hermes config path`) and writes b
 When invoked through `curl | bash`, the script automatically downloads the adjacent `hermes_config.py` helper from this repository into a temporary file and removes it when the install exits. A normal repository checkout continues to use its local helper.
 
 1. **Canonical custom provider** — detects legacy Octer entries by provider identity (including suffixed aliases such as `Octer-2`), any `*.octer.ai` endpoint, or the Octer key environment variable; removes all of them from both supported provider schemas; then writes exactly one `custom_providers` item. Re-running the installer is idempotent. All supported models are registered and `discover_models: false` keeps the picker stable.
-2. **Responses API routing** — sets `provider=custom:octer` and `api_mode=codex_responses`. This is required for GPT-5.5 tool calls with `reasoning_effort`; `/chat/completions` rejects that combination with HTTP 400.
-3. **Secret storage** — stores the key once as `OCTER_LLM_API_KEY` in Hermes' `.env` and references it with `key_env`; the key is no longer duplicated in `config.yaml`.
-4. **Apply and verify** — validates/enables an installed Octer platform plugin, performs `gateway stop` + `gateway start` to clear detached processes, and treats a failed or timed-out `hermes -z` self-test as a script failure.
+2. **One Chat Completions route** — sets `provider=custom:octer` and `api_mode=chat_completions` for every model. Octer's `/responses` route does not support all catalog models (for example GLM-5.2), while `/chat/completions` does.
+3. **GPT-5.x compatibility** — writes model-scoped `agent.reasoning_overrides: false` entries for GPT-5.x. Chat Completions accepts GPT tools when reasoning is disabled, but rejects tools combined with an enabled `reasoning_effort`. Other model families retain their server-side reasoning defaults.
+4. **Secret storage** — stores the key once as `OCTER_LLM_API_KEY` in Hermes' `.env` and references it with `key_env`; the key is no longer duplicated in `config.yaml`.
+5. **Apply and verify** — validates/enables an installed Octer platform plugin, performs `gateway stop` + `gateway start` to clear detached processes, and treats a failed or timed-out `hermes -z` self-test as a script failure.
 
 A timestamped backup of `config.yaml` is written before any change.
 
@@ -87,7 +88,7 @@ A timestamped backup of `config.yaml` is written before any change.
 
 ## set-hermes-model.ps1 (Windows / PowerShell)
 
-Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes one `custom:octer` provider, selects the Responses API, stores the key in `.env`, fully reloads the Gateway, and runs the same bounded self-test.
+Use this on Windows. Behavior is identical to `set-hermes-model.sh`: it writes one `custom:octer` provider, selects Chat Completions, stores the key in `.env`, fully reloads the Gateway, and runs the same bounded self-test.
 
 ### Usage
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Configure Hermes Agent to use the Octer OpenAI-compatible Responses API.
+# Configure Hermes Agent to use the Octer OpenAI-compatible Chat Completions API.
 # Usage: ./set-hermes-model.sh <API_KEY> [MODEL] [BASE_URL]
 set -euo pipefail
 
@@ -129,7 +129,7 @@ printf '%s' "$API_KEY" | "$PY" "$HELPER" set \
   --models-csv "$MODELS_CSV" \
   --max-tokens "$MAX_TOKENS"
 
-echo "✅ 已配置 ${NAME} → ${MODEL}（Responses API）"
+echo "✅ 已配置 ${NAME} → ${MODEL}（Chat Completions API）"
 
 # If the optional Octer WebSocket platform plugin is installed, validate and
 # re-enable it. Hermes plugins are opt-in after upgrades.
@@ -152,4 +152,4 @@ hermes config show | grep -iE "Model:|provider|reasoning" || true
 echo
 echo "🧪 自测（最多 60s）: hermes -z \"请只回复 OK\""
 "$PY" "$HELPER" self-test --hermes-bin "$HERMES_BIN" --timeout 60
-echo "✅ Hermes + Octer Responses API 自测通过"
+echo "✅ Hermes + Octer Chat Completions API 自测通过"

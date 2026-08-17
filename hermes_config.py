@@ -22,7 +22,7 @@ import yaml
 OCTER_NAME = "Octer"
 OCTER_PROVIDER = "custom:octer"
 OCTER_KEY_ENV = "OCTER_LLM_API_KEY"
-OCTER_API_MODE = "codex_responses"
+OCTER_API_MODE = "chat_completions"
 _OCTER_ALIASES = {"octer", "custom:octer"}
 _API_KEY_RE = re.compile(r"evo_[A-Za-z0-9]{26,}")
 _OCTER_IDENTITY_RE = re.compile(r"(?:^|[:_-])octer(?:$|[:_-])")
@@ -74,6 +74,32 @@ def _is_octer_entry(entry: Any, provider_key: str = "") -> bool:
         _is_octer_url(entry.get(field))
         for field in ("base_url", "baseUrl", "url", "api")
     )
+
+
+def _requires_disabled_reasoning_for_chat(model: Any) -> bool:
+    model_id = str(model or "").strip().lower().rsplit("/", 1)[-1]
+    return model_id.startswith("gpt-5")
+
+
+def _declared_model_ids(entry: Any) -> set[str]:
+    if not isinstance(entry, dict):
+        return set()
+    result = set()
+    default_model = str(entry.get("model") or entry.get("default_model") or "").strip()
+    if default_model:
+        result.add(default_model)
+    models = entry.get("models")
+    if isinstance(models, dict):
+        result.update(str(item).strip() for item in models if str(item).strip())
+    elif isinstance(models, list):
+        for item in models:
+            if isinstance(item, str) and item.strip():
+                result.add(item.strip())
+            elif isinstance(item, dict):
+                model_id = str(item.get("id") or item.get("name") or "").strip()
+                if model_id:
+                    result.add(model_id)
+    return result
 
 
 def normalize_base_url(raw: str) -> str:
@@ -166,17 +192,48 @@ def configure_data(
     active.pop("api_key", None)
     active.pop("custom_provider_id", None)
     config["model"] = active
+
+    # Octer exposes every model on Chat Completions. GPT-5.x accepts tools on
+    # that route only when reasoning_effort is disabled; keep the override
+    # model-scoped so GLM/Claude/Gemini retain their server-side defaults.
+    gpt_models = [item for item in model_ids if _requires_disabled_reasoning_for_chat(item)]
+    if gpt_models:
+        agent = config.get("agent")
+        if not isinstance(agent, dict):
+            agent = {}
+        reasoning_overrides = agent.get("reasoning_overrides")
+        if not isinstance(reasoning_overrides, dict):
+            reasoning_overrides = {}
+        for model_id in gpt_models:
+            reasoning_overrides[model_id] = False
+        agent["reasoning_overrides"] = reasoning_overrides
+        config["agent"] = agent
     return config
 
 
 def clear_data(config: dict[str, Any]) -> dict[str, Any]:
     config = copy.deepcopy(config)
 
+    octer_model_ids: set[str] = set()
+    raw_custom_providers = config.get("custom_providers")
+    if isinstance(raw_custom_providers, list):
+        for entry in raw_custom_providers:
+            if _is_octer_entry(entry):
+                octer_model_ids.update(_declared_model_ids(entry))
+    raw_keyed_providers = config.get("providers")
+    if isinstance(raw_keyed_providers, dict):
+        for key, entry in raw_keyed_providers.items():
+            if _is_octer_entry(entry, str(key)):
+                octer_model_ids.update(_declared_model_ids(entry))
+
     active = config.get("model")
     if isinstance(active, dict):
         provider = _identity(active.get("provider"))
         base_url = str(active.get("base_url") or "").lower()
         if provider in _OCTER_ALIASES or "octer" in base_url:
+            active_model = str(active.get("default") or active.get("model") or "").strip()
+            if active_model:
+                octer_model_ids.add(active_model)
             for key in (
                 "provider",
                 "base_url",
@@ -210,6 +267,20 @@ def clear_data(config: dict[str, Any]) -> dict[str, Any]:
             config["providers"] = kept
         else:
             config.pop("providers", None)
+
+    agent = config.get("agent")
+    if isinstance(agent, dict):
+        overrides = agent.get("reasoning_overrides")
+        if isinstance(overrides, dict):
+            for model_id in octer_model_ids:
+                if overrides.get(model_id) is False:
+                    overrides.pop(model_id, None)
+            if overrides:
+                agent["reasoning_overrides"] = overrides
+            else:
+                agent.pop("reasoning_overrides", None)
+        if not agent:
+            config.pop("agent", None)
 
     return config
 

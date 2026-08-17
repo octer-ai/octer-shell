@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Configure Hermes Agent to use the Octer Responses API.
+  Configure Hermes Agent to use the Octer Chat Completions API.
 .DESCRIPTION
   Writes one canonical custom:octer provider, stores the API key in Hermes'
   .env file, reloads the Gateway, and runs a 60-second end-to-end self-test.
@@ -161,4 +161,4 @@ Write-Host ''
 Write-Host '* 自测（最多 60s）: hermes -z "请只回复 OK"'
 & $Python @PythonPrefix $Helper self-test --hermes-bin $HermesBin --timeout 60
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-Write-Host 'OK Hermes + Octer Responses API 自测通过' -ForegroundColor Green
+Write-Host 'OK Hermes + Octer Chat Completions API 自测通过' -ForegroundColor Green

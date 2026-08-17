@@ -50,6 +50,8 @@ class HermesConfigTests(unittest.TestCase):
         self.assertEqual(result["model"]["provider"], OCTER_PROVIDER)
         self.assertEqual(result["model"]["api_mode"], OCTER_API_MODE)
         self.assertNotIn("api_key", result["model"])
+        self.assertIs(result["agent"]["reasoning_overrides"]["gpt-5.5"], False)
+        self.assertNotIn("claude-opus-4-8", result["agent"]["reasoning_overrides"])
         self.assertTrue(any(entry.get("name") == "Keep Me" for entry in result["custom_providers"]))
 
     def test_keyed_octer_provider_is_removed_without_touching_others(self):
@@ -121,11 +123,18 @@ class HermesConfigTests(unittest.TestCase):
                 {"name": "Other", "base_url": "https://other.test/v1"},
             ],
             "providers": {"octer": {"name": "Octer"}, "other": {"name": "Other"}},
+            "agent": {
+                "reasoning_overrides": {
+                    "gpt-5.5": False,
+                    "other-model": False,
+                }
+            },
         }
         result = clear_data(source)
         self.assertNotIn("model", result)
         self.assertEqual([entry["name"] for entry in result["custom_providers"]], ["Other"])
         self.assertEqual(set(result["providers"]), {"other"})
+        self.assertEqual(result["agent"]["reasoning_overrides"], {"other-model": False})
 
 
 if __name__ == "__main__":
