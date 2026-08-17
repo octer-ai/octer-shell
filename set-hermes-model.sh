@@ -100,6 +100,34 @@ cleanup_temp_helper() {
 }
 trap cleanup_temp_helper EXIT
 
+download_helper() {
+  local target="$1"
+  local primary="https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/hermes_config.py"
+  local mirror="https://cdn.jsdelivr.net/gh/octer-ai/octer-shell@master/hermes_config.py"
+  local override="${OCTER_HERMES_CONFIG_URL:-}"
+  local connect_timeout="${OCTER_DOWNLOAD_CONNECT_TIMEOUT:-8}"
+  local max_time="${OCTER_DOWNLOAD_MAX_TIME:-20}"
+  local retries="${OCTER_DOWNLOAD_RETRIES:-1}"
+  local urls=()
+  local url
+
+  [ -n "$override" ] && urls+=("$override")
+  [ "$override" = "$primary" ] || urls+=("$primary")
+  [ "$override" = "$mirror" ] || urls+=("$mirror")
+
+  for url in "${urls[@]}"; do
+    if curl -fsSL --proto '=https' --tlsv1.2 \
+      --connect-timeout "$connect_timeout" \
+      --max-time "$max_time" \
+      --retry "$retries" --retry-delay 1 \
+      "$url" -o "$target"; then
+      return 0
+    fi
+    echo "⚠️  当前下载源不可用，尝试备用地址..." >&2
+  done
+  return 1
+}
+
 SCRIPT_SOURCE="${BASH_SOURCE[0]:-}"
 if [ -n "$SCRIPT_SOURCE" ] && [ -f "$SCRIPT_SOURCE" ]; then
   SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$SCRIPT_SOURCE")" && pwd)"
@@ -111,10 +139,12 @@ if [ -z "$HELPER" ]; then
     echo "❌ curl 管道安装需要 curl 来下载共享配置器" >&2
     exit 1
   }
-  HELPER_URL="${OCTER_HERMES_CONFIG_URL:-https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/hermes_config.py}"
   TEMP_HELPER="$(mktemp "${TMPDIR:-/tmp}/octer-hermes-config.XXXXXX")"
   echo "⬇️  下载共享配置器..."
-  curl -fsSL --proto '=https' --tlsv1.2 "$HELPER_URL" -o "$TEMP_HELPER"
+  if ! download_helper "$TEMP_HELPER"; then
+    echo "❌ 共享配置器下载失败；请检查网络后重试" >&2
+    exit 1
+  fi
   HELPER="$TEMP_HELPER"
 fi
 

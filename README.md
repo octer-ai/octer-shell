@@ -168,7 +168,7 @@ Remove the Octer custom-model configuration and restore Hermes to its default. H
 curl -fsSL https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/clear-hermes-model.sh | bash
 ```
 
-When run through `curl | bash`, the script downloads the adjacent `hermes_config.py` to a temporary file and removes it on exit.
+When run through `curl | bash`, the script downloads the adjacent `hermes_config.py` to a temporary file and removes it on exit. Downloads have bounded connection and total timeouts; if GitHub Raw is unavailable, the script automatically falls back to jsDelivr instead of hanging indefinitely. The installer uses the same strategy.
 
 It strips every Octer-related entry while leaving other providers (e.g. `qwen`) intact:
 

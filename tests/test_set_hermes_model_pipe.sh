@@ -41,12 +41,21 @@ sed "s|TEST_ROOT_PLACEHOLDER|$TEST_ROOT|g" >"$TEST_ROOT/bin/curl" <<'SH'
 #!/usr/bin/env bash
 set -e
 output=""
+url=""
 while [ "$#" -gt 0 ]; do
-  if [ "$1" = "-o" ]; then output="$2"; shift 2; else shift; fi
+  case "$1" in
+    -o) output="$2"; shift 2 ;;
+    https://*) url="$1"; shift ;;
+    *) shift ;;
+  esac
 done
 test -n "$output"
+test -n "$url"
+printf '%s\n' "$url" >>"TEST_ROOT_PLACEHOLDER/curl.log"
+if [ "${FAIL_PRIMARY_DOWNLOAD:-}" = "1" ] && [ "$url" = "https://primary.invalid/hermes_config.py" ]; then
+  exit 22
+fi
 cp "TEST_ROOT_PLACEHOLDER/helper.py" "$output"
-printf '%s\n' download >>"TEST_ROOT_PLACEHOLDER/curl.log"
 SH
 
 chmod +x "$TEST_ROOT/bin/hermes" "$TEST_ROOT/bin/python3" "$TEST_ROOT/bin/curl"
@@ -73,15 +82,18 @@ fi
   cd "$TEST_ROOT/run"
   PATH="$TEST_ROOT/bin:/usr/bin:/bin" \
   TMPDIR="$TEST_ROOT/tmp" \
-  OCTER_HERMES_CONFIG_URL="https://example.test/hermes_config.py" \
+  OCTER_HERMES_CONFIG_URL="https://primary.invalid/hermes_config.py" \
+  FAIL_PRIMARY_DOWNLOAD=1 \
     bash -s <"$REPO_DIR/clear-hermes-model.sh"
 )
 
-test "$(wc -l <"$TEST_ROOT/curl.log" | tr -d ' ')" = "2"
+test "$(wc -l <"$TEST_ROOT/curl.log" | tr -d ' ')" = "3"
+tail -n 2 "$TEST_ROOT/curl.log" | grep -qx "https://primary.invalid/hermes_config.py"
+tail -n 1 "$TEST_ROOT/curl.log" | grep -qx "https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/hermes_config.py"
 grep -qx clear "$TEST_ROOT/python.log"
 if find "$TEST_ROOT/tmp" -name 'octer-hermes-config.*' -print -quit | grep -q .; then
   echo "temporary clear helper was not cleaned up" >&2
   exit 1
 fi
 
-echo "OK: set and clear curl | bash flows download and clean up the helper"
+echo "OK: set and clear curl | bash flows download, fall back, and clean up the helper"

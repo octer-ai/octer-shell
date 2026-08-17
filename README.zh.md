@@ -166,7 +166,7 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 curl -fsSL https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/clear-hermes-model.sh | bash
 ```
 
-通过 `curl | bash` 执行时，脚本会临时下载同仓库的 `hermes_config.py`，退出时自动删除。
+通过 `curl | bash` 执行时，脚本会临时下载同仓库的 `hermes_config.py`，退出时自动删除。下载有明确的连接和总时限；GitHub Raw 不可用时会自动切换到 jsDelivr 镜像，避免长期卡在“下载共享配置器”。安装脚本使用相同的下载策略。
 
 它会把所有 Octer 相关项清掉，保留 `qwen` 等其它 provider：
 
