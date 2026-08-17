@@ -69,4 +69,19 @@ if find "$TEST_ROOT/tmp" -name 'octer-hermes-config.*' -print -quit | grep -q .;
   exit 1
 fi
 
-echo "OK: curl | bash downloads and cleans up the helper"
+(
+  cd "$TEST_ROOT/run"
+  PATH="$TEST_ROOT/bin:/usr/bin:/bin" \
+  TMPDIR="$TEST_ROOT/tmp" \
+  OCTER_HERMES_CONFIG_URL="https://example.test/hermes_config.py" \
+    bash -s <"$REPO_DIR/clear-hermes-model.sh"
+)
+
+test "$(wc -l <"$TEST_ROOT/curl.log" | tr -d ' ')" = "2"
+grep -qx clear "$TEST_ROOT/python.log"
+if find "$TEST_ROOT/tmp" -name 'octer-hermes-config.*' -print -quit | grep -q .; then
+  echo "temporary clear helper was not cleaned up" >&2
+  exit 1
+fi
+
+echo "OK: set and clear curl | bash flows download and clean up the helper"

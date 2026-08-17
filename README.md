@@ -163,7 +163,12 @@ Remove the Octer custom-model configuration and restore Hermes to its default. H
 
 ```bash
 ./clear-hermes-model.sh
+
+# Or run it directly through a pipe
+curl -fsSL https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/clear-hermes-model.sh | bash
 ```
+
+When run through `curl | bash`, the script downloads the adjacent `hermes_config.py` to a temporary file and removes it on exit.
 
 It strips every Octer-related entry while leaving other providers (e.g. `qwen`) intact:
 

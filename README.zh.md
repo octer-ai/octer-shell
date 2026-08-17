@@ -161,7 +161,12 @@ powershell -ExecutionPolicy Bypass -File .\set-hermes-model.ps1 <API_KEY> [MODEL
 
 ```bash
 ./clear-hermes-model.sh
+
+# 或直接通过管道执行
+curl -fsSL https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/master/clear-hermes-model.sh | bash
 ```
+
+通过 `curl | bash` 执行时，脚本会临时下载同仓库的 `hermes_config.py`，退出时自动删除。
 
 它会把所有 Octer 相关项清掉，保留 `qwen` 等其它 provider：
 
