@@ -12,6 +12,7 @@ There are two scripts plus a cleanup helper:
 | `set-hermes-model.ps1` | Windows / PowerShell | Same behavior as the `.sh`, written for PowerShell |
 | `set-openclaw-model.sh` | Linux / macOS | Switch OpenClaw to the Octer custom model (OpenAI-compatible) |
 | `set-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw `.sh`, written for PowerShell |
+| `test-all-models.sh` | Linux / macOS | Test every built-in model's Chat and Hermes tool-streaming paths |
 | `clear-hermes-model.sh` | Linux / macOS | Remove all Octer-related config and restore the default |
 | `clear-openclaw-model.sh` | Linux / macOS | Remove the Octer model config from OpenClaw and restore the default |
 | `clear-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw clear `.sh`, written for PowerShell |
@@ -54,6 +55,26 @@ The menu (first item is the default) offers:
 You can still pass any other model name explicitly as the 2nd argument; it's used as-is with a warning if it's not in the list.
 
 **All of these models are registered on the provider**, so the client's model selector (dropdown) lists every one of them — the menu / argument only decides which is the *active/default* model. In your app you can switch between them at any time without re-running the script.
+
+### Test every model
+
+```bash
+./test-all-models.sh <API_KEY>
+```
+
+By default the script sequentially tests a basic Chat request and Hermes' critical `SSE + function tools` path for every built-in model. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
+
+Use environment variables to narrow or expand the matrix:
+
+```bash
+# Test only two models
+OCTER_MODELS='gpt-5.5,glm-5.2' ./test-all-models.sh <API_KEY>
+
+# Test Chat, Tools, SSE, SSE+Tools, reasoning+Tools, and Responses
+OCTER_EXTENDED=1 ./test-all-models.sh <API_KEY>
+```
+
+Any failed case gives the script a non-zero exit status, making it suitable for CI. Set `OCTER_KEEP_RESULTS=1` to retain each payload, response header, and response body for gateway diagnosis.
 
 ### Fixed configuration
 

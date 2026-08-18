@@ -10,6 +10,7 @@
 | `set-hermes-model.ps1` | Windows / PowerShell | 行为与 `.sh` 一致的 PowerShell 版 |
 | `set-openclaw-model.sh` | Linux / macOS | 把 OpenClaw 切到 Octer 自定义大模型(OpenAI 兼容) |
 | `set-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw `.sh` 一致的 PowerShell 版 |
+| `test-all-models.sh` | Linux / macOS | 测试全部内置模型的 Chat 与 Hermes 工具流式关键路径 |
 | `clear-hermes-model.sh` | Linux / macOS | 清除 Octer 相关配置,恢复默认 |
 | `clear-openclaw-model.sh` | Linux / macOS | 清除 OpenClaw 里的 Octer 模型配置,恢复默认 |
 | `clear-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw 清除 `.sh` 一致的 PowerShell 版 |
@@ -52,6 +53,26 @@
 你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
 
 **这些模型会全部注册到 provider 上**，所以客户端的模型选择器（下拉）里会列出全部模型 —— 菜单/参数只决定哪个是**当前激活/默认**模型。之后在客户端里可随时切换，无需重跑脚本。
+
+### 测试全部模型
+
+```bash
+./test-all-models.sh <API_KEY>
+```
+
+脚本默认逐个测试全部内置模型的普通 Chat 请求，以及 Hermes 最关键的 `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。测试按顺序执行，API Key 不会打印。
+
+可用环境变量缩小或扩展测试范围：
+
+```bash
+# 只测两个模型
+OCTER_MODELS='gpt-5.5,glm-5.2' ./test-all-models.sh <API_KEY>
+
+# 运行完整协议矩阵：Chat、Tools、SSE、SSE+Tools、reasoning+Tools、Responses
+OCTER_EXTENDED=1 ./test-all-models.sh <API_KEY>
+```
+
+任一场景失败时脚本返回非零退出码，适合直接放进 CI。设置 `OCTER_KEEP_RESULTS=1` 可保留每次请求的载荷、响应头和响应体，便于把 request ID 交给网关排查。
 
 ### 固定配置
 
