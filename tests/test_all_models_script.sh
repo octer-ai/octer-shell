@@ -88,10 +88,15 @@ for name, catalog in catalogs.items():
     if configured != catalog:
         raise SystemExit(f"model lists differ: set-hermes-model.sh={configured!r}, {name}={catalog!r}")
 
-required = {"qwen3.7-plus", "qwen3.7-max", "qwen3.8-max", "MiniMax-M3"}
+required = {"qwen3.8-max"}
 missing = required.difference(configured)
 if missing:
     raise SystemExit(f"new OClaw models missing from catalog: {sorted(missing)!r}")
+
+unsupported = {"qwen3.7-plus", "qwen3.7-max", "MiniMax-M3"}
+unexpected = unsupported.intersection(configured)
+if unexpected:
+    raise SystemExit(f"unsupported OClaw models still in catalog: {sorted(unexpected)!r}")
 PY
 
 if "$REPO_DIR/test-all-models.sh" '' >/dev/null 2>&1; then

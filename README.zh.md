@@ -49,10 +49,7 @@
 - `deepseek-v4-flash`
 - `deepseek-v4-pro`
 - `glm-5.2`
-- `qwen3.7-plus`
-- `qwen3.7-max`
 - `qwen3.8-max`
-- `MiniMax-M3`
 
 你仍可用第二个参数显式传任意其它模型名；若不在列表里，会给出提示并按你指定的使用。
 
