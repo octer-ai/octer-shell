@@ -34,6 +34,7 @@ usage() {
   OCTER_CONNECT_TIMEOUT=10  连接超时秒数
   OCTER_REQUEST_TIMEOUT=120 单次请求总超时秒数
   OCTER_DELAY_SECONDS=0     两次请求之间的等待秒数
+  OCTER_TOOL_MAX_TOKENS=1024 工具调用场景的最大输出 token 数
   OCTER_KEEP_RESULTS=1      保留响应头、响应体和请求载荷
 
 示例:
@@ -56,6 +57,7 @@ REQUEST_TIMEOUT="${OCTER_REQUEST_TIMEOUT:-120}"
 DELAY_SECONDS="${OCTER_DELAY_SECONDS:-0}"
 EXTENDED="${OCTER_EXTENDED:-0}"
 KEEP_RESULTS="${OCTER_KEEP_RESULTS:-0}"
+TOOL_MAX_TOKENS="${OCTER_TOOL_MAX_TOKENS:-1024}"
 
 if [ -z "$API_KEY" ]; then
   usage >&2
@@ -68,6 +70,10 @@ if ! printf '%s' "$API_KEY" | grep -qE '^evo_[A-Za-z0-9]{26,}$'; then
 fi
 command -v curl >/dev/null 2>&1 || { echo "❌ 未找到 curl" >&2; exit 1; }
 command -v python3 >/dev/null 2>&1 || { echo "❌ 未找到 python3" >&2; exit 1; }
+if ! printf '%s' "$TOOL_MAX_TOKENS" | grep -qE '^[1-9][0-9]*$'; then
+  echo "❌ OCTER_TOOL_MAX_TOKENS 必须是正整数" >&2
+  exit 2
+fi
 
 MODELS=("${DEFAULT_MODELS[@]}")
 if [ -n "${OCTER_MODELS:-}" ]; then
@@ -122,11 +128,11 @@ case_label() {
 
 build_payload() {
   local model="$1" test_case="$2" output="$3"
-  python3 - "$model" "$test_case" > "$output" <<'PY'
+  python3 - "$model" "$test_case" "$TOOL_MAX_TOKENS" > "$output" <<'PY'
 import json
 import sys
 
-model, case = sys.argv[1:3]
+model, case, tool_max_tokens = sys.argv[1:4]
 tool = {
     "type": "function",
     "function": {
@@ -145,6 +151,7 @@ else:
         "max_tokens": 64,
     }
     if case in ("chat-tool", "chat-stream-tool", "chat-reasoning-tool"):
+        payload["max_tokens"] = int(tool_max_tokens)
         payload["messages"][0]["content"] = "请调用 ping 函数，不要直接回答。"
         payload["tools"] = [tool]
         payload["tool_choice"] = {"type": "function", "function": {"name": "ping"}}
@@ -192,6 +199,29 @@ def json_error(text):
         return clean(error.get("message") or error.get("detail") or error)
     return clean(error)
 
+def error_message(error):
+    if isinstance(error, dict):
+        return clean(error.get("message") or error.get("detail") or error)
+    return clean(error)
+
+def reasoning_tokens(usage):
+    if not isinstance(usage, dict):
+        return 0
+    details = usage.get("completion_tokens_details") or {}
+    if not isinstance(details, dict):
+        return 0
+    value = details.get("reasoning_tokens", 0)
+    return value if isinstance(value, int) else 0
+
+def token_budget_detail(usage):
+    completion = usage.get("completion_tokens", 0) if isinstance(usage, dict) else 0
+    reasoning = reasoning_tokens(usage)
+    if reasoning:
+        return f"输出 token 预算耗尽（completion={completion}, reasoning={reasoning}），结果不确定"
+    if completion:
+        return f"输出 token 预算耗尽（completion={completion}），结果不确定"
+    return "输出 token 预算耗尽，结果不确定"
+
 try:
     http_code = int(http_text or 0)
 except ValueError:
@@ -203,7 +233,7 @@ if curl_error and http_code == 0:
 elif not 200 <= http_code < 300:
     detail = json_error(body) if body else clean(curl_error or f"HTTP {http_code}")
 elif case in ("chat-stream", "chat-stream-tool"):
-    events, done = [], False
+    events, done, stream_errors = [], False, []
     for line in body.splitlines():
         if not line.startswith("data:"):
             continue
@@ -212,10 +242,15 @@ elif case in ("chat-stream", "chat-stream-tool"):
             done = True
             continue
         try:
-            events.append(json.loads(data))
+            event = json.loads(data)
+            events.append(event)
+            if isinstance(event, dict) and event.get("error"):
+                stream_errors.append(error_message(event["error"]))
         except json.JSONDecodeError:
             pass
-    if not events:
+    if stream_errors:
+        detail = f"上游 SSE 错误: {stream_errors[0]}"
+    elif not events:
         detail = "HTTP 2xx，但没有可解析的 SSE data 事件"
     elif not done:
         detail = "SSE 未收到 [DONE]"
@@ -223,13 +258,21 @@ elif case in ("chat-stream", "chat-stream-tool"):
         status, detail = "PASS", f"{len(events)} 个 SSE 事件"
     else:
         names = {}
+        finish_reasons = []
+        usage = {}
         for event in events:
+            if isinstance(event.get("usage"), dict):
+                usage = event["usage"]
             for choice in event.get("choices", []):
+                if choice.get("finish_reason"):
+                    finish_reasons.append(choice["finish_reason"])
                 for call in choice.get("delta", {}).get("tool_calls", []) or []:
                     index = call.get("index", 0)
                     names[index] = names.get(index, "") + call.get("function", {}).get("name", "")
         if "ping" in names.values():
             status, detail = "PASS", "SSE 工具调用 ping"
+        elif "length" in finish_reasons:
+            status, detail = "INCONCLUSIVE", token_budget_detail(usage)
         else:
             detail = "SSE 成功，但未收到 ping 工具调用"
 else:
@@ -247,10 +290,13 @@ else:
     elif not data.get("choices"):
         detail = json_error(body)
     elif case in ("chat-tool", "chat-reasoning-tool"):
-        message = data["choices"][0].get("message", {})
+        choice = data["choices"][0]
+        message = choice.get("message", {})
         names = [item.get("function", {}).get("name") for item in message.get("tool_calls", []) or []]
         if "ping" in names:
             status, detail = "PASS", "工具调用 ping"
+        elif choice.get("finish_reason") == "length":
+            status, detail = "INCONCLUSIVE", token_budget_detail(data.get("usage", {}))
         else:
             detail = "Chat 成功，但未收到 ping 工具调用"
     else:
@@ -265,6 +311,7 @@ PY
 total=$(( ${#MODELS[@]} * ${#CASES[@]} ))
 current=0
 failures=0
+inconclusive=0
 
 echo "Octer 全模型兼容性测试"
 echo "接口: $BASE_URL"
@@ -308,6 +355,9 @@ for model in "${MODELS[@]}"; do
 
     if [ "$status" = "PASS" ]; then
       printf '✅ PASS  HTTP %s' "${http_code:-000}"
+    elif [ "$status" = "INCONCLUSIVE" ]; then
+      printf '⚠️  INCONCLUSIVE  HTTP %s' "${http_code:-000}"
+      inconclusive=$((inconclusive + 1))
     else
       printf '❌ FAIL  HTTP %s' "${http_code:-000}"
       failures=$((failures + 1))
@@ -346,7 +396,13 @@ headers = ["Model"] + [labels[item] for item in cases] + ["Result"]
 table = []
 for model in models:
     states = [lookup.get((model, item), ["", "", "SKIP"])[2] for item in cases]
-    table.append([model] + states + ["PASS" if all(x == "PASS" for x in states) else "FAIL"])
+    if all(x == "PASS" for x in states):
+        result = "PASS"
+    elif "FAIL" in states:
+        result = "FAIL"
+    else:
+        result = "INCONCLUSIVE"
+    table.append([model] + states + [result])
 widths = [max(len(headers[i]), *(len(row[i]) for row in table)) for i in range(len(headers))]
 print("汇总")
 print("  ".join(headers[i].ljust(widths[i]) for i in range(len(headers))))
@@ -354,15 +410,23 @@ print("  ".join("-" * width for width in widths))
 for row in table:
     print("  ".join(row[i].ljust(widths[i]) for i in range(len(headers))))
 
-failed = [row for row in rows if row[2] != "PASS"]
+failed = [row for row in rows if row[2] == "FAIL"]
 if failed:
     print("\n失败明细")
     for model, case, _, http, request_id, detail in failed:
         request = "" if request_id == "-" else f", request-id={request_id}"
         print(f"- {model} / {labels.get(case, case)}: HTTP {http}{request} — {detail}")
+
+inconclusive = [row for row in rows if row[2] == "INCONCLUSIVE"]
+if inconclusive:
+    print("\n结果不确定（建议提高 OCTER_TOOL_MAX_TOKENS 后重试）")
+    for model, case, _, http, request_id, detail in inconclusive:
+        request = "" if request_id == "-" else f", request-id={request_id}"
+        print(f"- {model} / {labels.get(case, case)}: HTTP {http}{request} — {detail}")
 PY
 
 passes=$((total - failures))
+passes=$((passes - inconclusive))
 echo
-echo "结果: PASS=$passes  FAIL=$failures  TOTAL=$total"
-[ "$failures" -eq 0 ]
+echo "结果: PASS=$passes  FAIL=$failures  INCONCLUSIVE=$inconclusive  TOTAL=$total"
+[ "$failures" -eq 0 ] && [ "$inconclusive" -eq 0 ]
