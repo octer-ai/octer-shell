@@ -52,7 +52,7 @@ PATH="$TEST_DIR/bin:$PATH" \
 grep -q 'model-a' "$OUTPUT"
 grep -q 'model-b' "$OUTPUT"
 grep -q 'request-id=mock-request-id' "$OUTPUT"
-grep -q '结果: PASS=12  FAIL=0  TOTAL=12' "$OUTPUT"
+grep -q '结果: PASS=12  FAIL=0  INCONCLUSIVE=0  TOTAL=12' "$OUTPUT"
 
 python3 - "$REPO_DIR" <<'PY'
 import re
@@ -60,19 +60,38 @@ import sys
 from pathlib import Path
 
 root = Path(sys.argv[1])
-pattern = re.compile(r'^(?:  )?"([^"\n]+)"$', re.MULTILINE)
+shell_pattern = re.compile(r'^(?:  )?"([^"\n]+)"$', re.MULTILINE)
+ps_pattern = re.compile(r"^\s*'([^'\n]+)'[,]?$", re.MULTILINE)
 
 def models(path, variable):
     text = path.read_text(encoding="utf-8")
     block = re.search(rf'{variable}=\(\n(.*?)\n\)', text, re.DOTALL)
     if not block:
         raise SystemExit(f"missing {variable} in {path.name}")
-    return pattern.findall(block.group(1))
+    return shell_pattern.findall(block.group(1))
+
+def ps_models(path):
+    text = path.read_text(encoding="utf-8")
+    block = re.search(r'\$Models\s*=\s*@\(\n(.*?)\n\)', text, re.DOTALL)
+    if not block:
+        raise SystemExit(f"missing $Models in {path.name}")
+    return ps_pattern.findall(block.group(1))
 
 configured = models(root / "set-hermes-model.sh", "MODELS")
-tested = models(root / "test-all-models.sh", "DEFAULT_MODELS")
-if configured != tested:
-    raise SystemExit(f"model lists differ: configured={configured!r}, tested={tested!r}")
+catalogs = {
+    "test-all-models.sh": models(root / "test-all-models.sh", "DEFAULT_MODELS"),
+    "set-openclaw-model.sh": models(root / "set-openclaw-model.sh", "MODELS"),
+    "set-hermes-model.ps1": ps_models(root / "set-hermes-model.ps1"),
+    "set-openclaw-model.ps1": ps_models(root / "set-openclaw-model.ps1"),
+}
+for name, catalog in catalogs.items():
+    if configured != catalog:
+        raise SystemExit(f"model lists differ: set-hermes-model.sh={configured!r}, {name}={catalog!r}")
+
+required = {"qwen3.7-plus", "qwen3.7-max", "qwen3.8-max", "MiniMax-M3"}
+missing = required.difference(configured)
+if missing:
+    raise SystemExit(f"new OClaw models missing from catalog: {sorted(missing)!r}")
 PY
 
 if "$REPO_DIR/test-all-models.sh" '' >/dev/null 2>&1; then

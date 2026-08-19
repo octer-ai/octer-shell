@@ -51,6 +51,10 @@ The menu (first item is the default) offers:
 - `deepseek-v4-flash`
 - `deepseek-v4-pro`
 - `glm-5.2`
+- `qwen3.7-plus`
+- `qwen3.7-max`
+- `qwen3.8-max`
+- `MiniMax-M3`
 
 You can still pass any other model name explicitly as the 2nd argument; it's used as-is with a warning if it's not in the list.
 

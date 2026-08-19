@@ -55,7 +55,11 @@ $Models = @(
   'gemini-3.5-flash',
   'deepseek-v4-flash',
   'deepseek-v4-pro',
-  'glm-5.2'
+  'glm-5.2',
+  'qwen3.7-plus',
+  'qwen3.7-max',
+  'qwen3.8-max',
+  'MiniMax-M3'
 )
 $DefaultModel = $Models[0]
 
