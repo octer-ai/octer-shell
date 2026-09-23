@@ -10,7 +10,7 @@
 | `set-hermes-model.ps1` | Windows / PowerShell | 行为与 `.sh` 一致的 PowerShell 版 |
 | `set-openclaw-model.sh` | Linux / macOS | 把 OpenClaw 切到 Octer 自定义大模型(OpenAI 兼容) |
 | `set-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw `.sh` 一致的 PowerShell 版 |
-| `test-all-models.sh` | Linux / macOS | 测试全部内置模型的 Chat 与 Hermes 工具流式关键路径 |
+| `test-all-models.sh` | Linux / macOS | 测试模型列表的 Chat 与 Hermes 工具流式关键路径 |
 | `clear-hermes-model.sh` | Linux / macOS | 清除 Octer 相关配置,恢复默认 |
 | `clear-openclaw-model.sh` | Linux / macOS | 清除 OpenClaw 里的 Octer 模型配置,恢复默认 |
 | `clear-openclaw-model.ps1` | Windows / PowerShell | 行为与 OpenClaw 清除 `.sh` 一致的 PowerShell 版 |
@@ -61,7 +61,7 @@
 ./test-all-models.sh <API_KEY>
 ```
 
-脚本默认逐个测试全部内置模型的普通 Chat 请求，以及 Hermes 最关键的 `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。测试按顺序执行，API Key 不会打印。
+脚本默认逐个测试安装脚本中的模型，以及 Gemini 3.1 Flash Lite、MiniMax M3、Qwen 3.7 Max / Plus 的普通 Chat 请求和 Hermes `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。新增的四个模型仅用于连通性探测，尚未加入安装脚本的模型菜单。测试按顺序执行，API Key 不会打印。
 
 可用环境变量缩小或扩展测试范围：
 

@@ -12,7 +12,7 @@ There are two scripts plus a cleanup helper:
 | `set-hermes-model.ps1` | Windows / PowerShell | Same behavior as the `.sh`, written for PowerShell |
 | `set-openclaw-model.sh` | Linux / macOS | Switch OpenClaw to the Octer custom model (OpenAI-compatible) |
 | `set-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw `.sh`, written for PowerShell |
-| `test-all-models.sh` | Linux / macOS | Test every built-in model's Chat and Hermes tool-streaming paths |
+| `test-all-models.sh` | Linux / macOS | Test the model list's Chat and Hermes tool-streaming paths |
 | `clear-hermes-model.sh` | Linux / macOS | Remove all Octer-related config and restore the default |
 | `clear-openclaw-model.sh` | Linux / macOS | Remove the Octer model config from OpenClaw and restore the default |
 | `clear-openclaw-model.ps1` | Windows / PowerShell | Same behavior as the OpenClaw clear `.sh`, written for PowerShell |
@@ -63,7 +63,7 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 ./test-all-models.sh <API_KEY>
 ```
 
-By default the script sequentially tests a basic Chat request and Hermes' critical `SSE + function tools` path for every built-in model. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
+By default the script tests every installer model plus Gemini 3.1 Flash Lite, MiniMax M3, and Qwen 3.7 Max / Plus with a basic Chat request and Hermes' critical `SSE + function tools` path. Those four additions are connectivity probes and are not in the installer menu yet. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
 
 Use environment variables to narrow or expand the matrix:
 

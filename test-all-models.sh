@@ -17,6 +17,10 @@ DEFAULT_MODELS=(
   "deepseek-v4-pro"
   "glm-5.2"
   "qwen3.8-max"
+  "gemini-3.1-flash-lite"
+  "MiniMax-M3"
+  "qwen3.7-max"
+  "qwen3.7-plus"
 )
 
 usage() {

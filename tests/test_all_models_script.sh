@@ -78,8 +78,8 @@ def ps_models(path):
     return ps_pattern.findall(block.group(1))
 
 configured = models(root / "set-hermes-model.sh", "MODELS")
+probe_models = models(root / "test-all-models.sh", "DEFAULT_MODELS")
 catalogs = {
-    "test-all-models.sh": models(root / "test-all-models.sh", "DEFAULT_MODELS"),
     "set-openclaw-model.sh": models(root / "set-openclaw-model.sh", "MODELS"),
     "set-hermes-model.ps1": ps_models(root / "set-hermes-model.ps1"),
     "set-openclaw-model.ps1": ps_models(root / "set-openclaw-model.ps1"),
@@ -88,15 +88,16 @@ for name, catalog in catalogs.items():
     if configured != catalog:
         raise SystemExit(f"model lists differ: set-hermes-model.sh={configured!r}, {name}={catalog!r}")
 
-required = {"qwen3.8-max"}
-missing = required.difference(configured)
-if missing:
-    raise SystemExit(f"new OClaw models missing from catalog: {sorted(missing)!r}")
-
-unsupported = {"qwen3.7-plus", "qwen3.7-max", "MiniMax-M3"}
-unexpected = unsupported.intersection(configured)
-if unexpected:
-    raise SystemExit(f"unsupported OClaw models still in catalog: {sorted(unexpected)!r}")
+probe_only = ["gemini-3.1-flash-lite", "MiniMax-M3", "qwen3.7-max", "qwen3.7-plus"]
+if probe_models != configured + probe_only:
+    raise SystemExit(
+        f"connectivity test models differ: expected {configured + probe_only!r}, "
+        f"got {probe_models!r}"
+    )
+if "qwen3.8-max" not in configured:
+    raise SystemExit("qwen3.8-max missing from configured models")
+if set(probe_only).intersection(configured):
+    raise SystemExit("probe-only models unexpectedly added to the installer")
 PY
 
 if "$REPO_DIR/test-all-models.sh" '' >/dev/null 2>&1; then
