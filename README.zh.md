@@ -61,7 +61,7 @@
 ./test-all-models.sh <API_KEY>
 ```
 
-脚本默认逐个测试安装脚本中的模型，以及 Gemini 3.1 Flash Lite、MiniMax M3、Qwen 3.7 Max / Plus 的普通 Chat 请求和 Hermes `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。新增的四个模型仅用于连通性探测，尚未加入安装脚本的模型菜单。测试按顺序执行，API Key 不会打印。
+脚本默认逐个测试安装脚本中的模型，以及 GPT-6 Astra / Sol / Luna、Gemini 3.8 Flash、GLM-5.3、Gemini 3.1 Flash Lite、MiniMax M3、Qwen 3.7 Max / Plus 的普通 Chat 请求和 Hermes `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。这九个候选模型仅用于连通性探测，尚未加入安装脚本的模型菜单。测试按顺序执行，API Key 不会打印。
 
 可用环境变量缩小或扩展测试范围：
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Test every model exposed by the Octer Hermes configuration.
+# Probe installer models and newer OClaw chat candidates.
 # Usage: ./test-all-models.sh <API_KEY> [BASE_URL]
 set -uo pipefail
 
@@ -21,6 +21,11 @@ DEFAULT_MODELS=(
   "MiniMax-M3"
   "qwen3.7-max"
   "qwen3.7-plus"
+  "gpt-6-astra"
+  "gpt-6-sol"
+  "gpt-6-luna"
+  "gemini-3.8-flash"
+  "glm-5.3"
 )
 
 usage() {

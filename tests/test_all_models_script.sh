@@ -88,7 +88,10 @@ for name, catalog in catalogs.items():
     if configured != catalog:
         raise SystemExit(f"model lists differ: set-hermes-model.sh={configured!r}, {name}={catalog!r}")
 
-probe_only = ["gemini-3.1-flash-lite", "MiniMax-M3", "qwen3.7-max", "qwen3.7-plus"]
+probe_only = [
+    "gemini-3.1-flash-lite", "MiniMax-M3", "qwen3.7-max", "qwen3.7-plus",
+    "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gemini-3.8-flash", "glm-5.3",
+]
 if probe_models != configured + probe_only:
     raise SystemExit(
         f"connectivity test models differ: expected {configured + probe_only!r}, "

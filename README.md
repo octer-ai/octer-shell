@@ -63,7 +63,7 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 ./test-all-models.sh <API_KEY>
 ```
 
-By default the script tests every installer model plus Gemini 3.1 Flash Lite, MiniMax M3, and Qwen 3.7 Max / Plus with a basic Chat request and Hermes' critical `SSE + function tools` path. Those four additions are connectivity probes and are not in the installer menu yet. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
+By default the script tests every installer model plus GPT-6 Astra / Sol / Luna, Gemini 3.8 Flash, GLM-5.3, Gemini 3.1 Flash Lite, MiniMax M3, and Qwen 3.7 Max / Plus with a basic Chat request and Hermes' critical `SSE + function tools` path. Those nine additions are connectivity probes and are not in the installer menu yet. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
 
 Use environment variables to narrow or expand the matrix:
 
