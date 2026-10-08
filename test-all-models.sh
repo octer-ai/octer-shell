@@ -26,6 +26,8 @@ DEFAULT_MODELS=(
   "gpt-6-luna"
   "gemini-3.8-flash"
   "glm-5.3"
+  "claude-opus-5-5"
+  "claude-sonnet-5-5"
 )
 
 usage() {
@@ -164,7 +166,12 @@ else:
         payload["max_tokens"] = int(tool_max_tokens)
         payload["messages"][0]["content"] = "请调用 ping 函数，不要直接回答。"
         payload["tools"] = [tool]
-        payload["tool_choice"] = {"type": "function", "function": {"name": "ping"}}
+        # Claude 5.5 rejects forced tool use; still require a real ping call in the verdict.
+        # https://platform.claude.com/docs/en/api/errors#forced-tool-use-not-supported
+        if model in ("claude-opus-5-5", "claude-sonnet-5-5"):
+            payload["tool_choice"] = "auto"
+        else:
+            payload["tool_choice"] = {"type": "function", "function": {"name": "ping"}}
     if case in ("chat-stream", "chat-stream-tool"):
         payload["stream"] = True
     if case == "chat-reasoning-tool":

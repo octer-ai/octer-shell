@@ -61,7 +61,9 @@
 ./test-all-models.sh <API_KEY>
 ```
 
-脚本默认逐个测试安装脚本中的模型，以及 GPT-6 Astra / Sol / Luna、Gemini 3.8 Flash、GLM-5.3、Gemini 3.1 Flash Lite、MiniMax M3、Qwen 3.7 Max / Plus 的普通 Chat 请求和 Hermes `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。这九个候选模型仅用于连通性探测，尚未加入安装脚本的模型菜单。测试按顺序执行，API Key 不会打印。
+脚本默认逐个测试安装脚本中的模型，以及 GPT-6 Astra / Sol / Luna、Gemini 3.8 Flash、GLM-5.3、Gemini 3.1 Flash Lite、MiniMax M3、Qwen 3.7 Max / Plus、Claude Opus / Sonnet 5.5 的普通 Chat 请求和 Hermes `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。这十一个候选模型仅用于连通性探测，尚未加入安装脚本的模型菜单。测试按顺序执行，API Key 不会打印。
+
+Claude Opus 5.5 和 Sonnet 5.5 [不支持强制工具调用](https://platform.claude.com/docs/en/api/errors#forced-tool-use-not-supported)，因此工具测试使用 `tool_choice: "auto"`，并在提示词中要求调用 `ping`。响应中实际包含 `ping` 工具调用才会通过，单纯 HTTP 200 不算通过；其它模型继续强制选择 `ping`。
 
 可用环境变量缩小或扩展测试范围：
 

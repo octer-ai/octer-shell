@@ -63,7 +63,9 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 ./test-all-models.sh <API_KEY>
 ```
 
-By default the script tests every installer model plus GPT-6 Astra / Sol / Luna, Gemini 3.8 Flash, GLM-5.3, Gemini 3.1 Flash Lite, MiniMax M3, and Qwen 3.7 Max / Plus with a basic Chat request and Hermes' critical `SSE + function tools` path. Those nine additions are connectivity probes and are not in the installer menu yet. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
+By default the script tests every installer model plus GPT-6 Astra / Sol / Luna, Gemini 3.8 Flash, GLM-5.3, Gemini 3.1 Flash Lite, MiniMax M3, Qwen 3.7 Max / Plus, and Claude Opus / Sonnet 5.5 with a basic Chat request and Hermes' critical `SSE + function tools` path. Those eleven additions are connectivity probes and are not in the installer menu yet. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
+
+Claude Opus 5.5 and Sonnet 5.5 [do not support forced tool use](https://platform.claude.com/docs/en/api/errors#forced-tool-use-not-supported). Their tool probes use `tool_choice: "auto"` and ask for `ping` in the prompt. A tool test passes only when the response contains a `ping` tool call; HTTP 200 alone does not pass. Other models keep the named, forced `ping` selection.
 
 Use environment variables to narrow or expand the matrix:
 

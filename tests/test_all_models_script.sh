@@ -23,19 +23,44 @@ while [ "$#" -gt 0 ]; do
     *) shift ;;
   esac
 done
+python3 - "$payload" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1]) as f:
+    request = json.load(f)
+if request.get("tools"):
+    expected = (
+        "auto" if request["model"] in ("claude-opus-5-5", "claude-sonnet-5-5")
+        else {"type": "function", "function": {"name": "ping"}}
+    )
+    assert request.get("tool_choice") == expected, request
+    assert request["tools"][0]["function"]["name"] == "ping"
+    assert request["messages"][0]["content"] == "请调用 ping 函数，不要直接回答。"
+PY
 printf 'HTTP/1.1 200 OK\r\nx-request-id: mock-request-id\r\n\r\n' > "$headers"
 if printf '%s' "$endpoint" | grep -q '/responses$'; then
   printf '%s\n' '{"id":"resp_mock","object":"response","output":[]}' > "$body"
 elif grep -q '"stream":true' "$payload" && grep -q '"tools"' "$payload"; then
-  printf '%s\n' \
-    'data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"name":"ping","arguments":"{}"}}]}}]}' \
-    'data: [DONE]' > "$body"
+  if [ "${MOCK_SKIP_TOOL:-0}" = "1" ]; then
+    printf '%s\n' \
+      'data: {"choices":[{"index":0,"delta":{"content":"OK"},"finish_reason":"stop"}]}' \
+      'data: [DONE]' > "$body"
+  else
+    printf '%s\n' \
+      'data: {"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,"function":{"name":"ping","arguments":"{}"}}]}}]}' \
+      'data: [DONE]' > "$body"
+  fi
 elif grep -q '"stream":true' "$payload"; then
   printf '%s\n' \
     'data: {"choices":[{"index":0,"delta":{"content":"OK"}}]}' \
     'data: [DONE]' > "$body"
 elif grep -q '"tools"' "$payload"; then
-  printf '%s\n' '{"choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"id":"call_mock","type":"function","function":{"name":"ping","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}' > "$body"
+  if [ "${MOCK_SKIP_TOOL:-0}" = "1" ]; then
+    printf '%s\n' '{"choices":[{"index":0,"message":{"role":"assistant","content":"OK"},"finish_reason":"stop"}]}' > "$body"
+  else
+    printf '%s\n' '{"choices":[{"index":0,"message":{"role":"assistant","tool_calls":[{"id":"call_mock","type":"function","function":{"name":"ping","arguments":"{}"}}]},"finish_reason":"tool_calls"}]}' > "$body"
+  fi
 else
   printf '%s\n' '{"choices":[{"index":0,"message":{"role":"assistant","content":"OK"},"finish_reason":"stop"}]}' > "$body"
 fi
@@ -53,6 +78,25 @@ grep -q 'model-a' "$OUTPUT"
 grep -q 'model-b' "$OUTPUT"
 grep -q 'request-id=mock-request-id' "$OUTPUT"
 grep -q '结果: PASS=12  FAIL=0  INCONCLUSIVE=0  TOTAL=12' "$OUTPUT"
+
+# Cover auto tool selection for both Claude 5.5 models in all three tool scenarios.
+PATH="$TEST_DIR/bin:$PATH" \
+  OCTER_MODELS='claude-opus-5-5,claude-sonnet-5-5,claude-opus-4-8,gpt-5.5' \
+  OCTER_EXTENDED=1 \
+  "$REPO_DIR/test-all-models.sh" 'evo_abcdefghijklmnopqrstuvwxyz' 'https://example.test/v1' > "$OUTPUT"
+grep -q '结果: PASS=24  FAIL=0  INCONCLUSIVE=0  TOTAL=24' "$OUTPUT"
+
+# An HTTP 200 response with no tool call must fail even with tool_choice=auto.
+if PATH="$TEST_DIR/bin:$PATH" \
+  OCTER_MODELS='claude-opus-5-5,claude-sonnet-5-5' \
+  OCTER_EXTENDED=1 MOCK_SKIP_TOOL=1 \
+  "$REPO_DIR/test-all-models.sh" 'evo_abcdefghijklmnopqrstuvwxyz' 'https://example.test/v1' > "$OUTPUT"; then
+  echo 'Claude auto tool tests must fail when ping is not called' >&2
+  exit 1
+fi
+grep -q '结果: PASS=6  FAIL=6  INCONCLUSIVE=0  TOTAL=12' "$OUTPUT"
+grep -q 'SSE 成功，但未收到 ping 工具调用' "$OUTPUT"
+grep -q 'Chat 成功，但未收到 ping 工具调用' "$OUTPUT"
 
 python3 - "$REPO_DIR" <<'PY'
 import re
@@ -91,6 +135,7 @@ for name, catalog in catalogs.items():
 probe_only = [
     "gemini-3.1-flash-lite", "MiniMax-M3", "qwen3.7-max", "qwen3.7-plus",
     "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gemini-3.8-flash", "glm-5.3",
+    "claude-opus-5-5", "claude-sonnet-5-5",
 ]
 if probe_models != configured + probe_only:
     raise SystemExit(
