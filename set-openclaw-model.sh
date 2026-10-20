@@ -24,8 +24,8 @@ MODELS=(
   "gpt-5.6-terra"
   "gpt-5.6-luna"
   "claude-opus-4-8"
-  "gemini-3.1-pro-preview"
-  "gemini-3-flash-preview"
+  "gpt-6.1-sol"
+  "gemini-3.8-flash"
   "gemini-3.5-flash"
   "deepseek-v4-flash"
   "deepseek-v4-pro"
@@ -69,6 +69,11 @@ select_model() {
   fi
 }
 select_model "${2:-}"
+# Migrate explicit legacy choices before writing client configuration.
+case "$MODEL" in
+  gemini-3.1-pro-preview) MODEL="gpt-6.1-sol" ;;
+  gemini-3-flash-preview) MODEL="gemini-3.8-flash" ;;
+esac
 echo "→ 选定模型: ${MODEL}"
 MODEL_ID="${PROVIDER}/${MODEL}"       # OpenClaw 的 model id 形如 provider/model
 # ────────────────────────────────────────────────────────
