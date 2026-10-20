@@ -45,8 +45,8 @@ The menu (first item is the default) offers:
 - `gpt-5.6-terra`
 - `gpt-5.6-luna`
 - `claude-opus-4-8`
-- `gemini-3.1-pro-preview`
-- `gemini-3-flash-preview`
+- `gpt-6.1-sol`
+- `gemini-3.8-flash`
 - `gemini-3.5-flash`
 - `deepseek-v4-flash`
 - `deepseek-v4-pro`
@@ -233,5 +233,7 @@ If `hermes -z` hangs, hit the endpoint directly with `curl` to check whether the
 ```bash
 curl -sS https://oclaw.octer.ai/v1/chat/completions \
   -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" \
-  -d '{"model":"gemini-3-flash-preview","messages":[{"role":"user","content":"hi"}]}'
+  -d '{"model":"gemini-3.8-flash","messages":[{"role":"user","content":"hi"}]}'
 ```
+
+Legacy choices: explicit `gemini-3.1-pro-preview` migrates to `gpt-6.1-sol`; `gemini-3-flash-preview` migrates to `gemini-3.8-flash`. Retired models no longer appear in installation menus.

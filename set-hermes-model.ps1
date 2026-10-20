@@ -27,8 +27,8 @@ $Models = @(
   'gpt-5.6-terra',
   'gpt-5.6-luna',
   'claude-opus-4-8',
-  'gemini-3.1-pro-preview',
-  'gemini-3-flash-preview',
+  'gpt-6.1-sol',
+  'gemini-3.8-flash',
   'gemini-3.5-flash',
   'deepseek-v4-flash',
   'deepseek-v4-pro',
@@ -74,6 +74,10 @@ if (-not (Test-Command 'hermes')) {
 }
 
 $SelectedModel = Select-OcterModel $Model
+switch ($SelectedModel) {
+  'gemini-3.1-pro-preview' { $SelectedModel = 'gpt-6.1-sol' }
+  'gemini-3-flash-preview' { $SelectedModel = 'gemini-3.8-flash' }
+}
 Write-Host "-> 选定模型: $SelectedModel"
 
 $Helper = Join-Path $PSScriptRoot 'hermes_config.py'

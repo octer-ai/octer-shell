@@ -43,8 +43,8 @@
 - `gpt-5.6-terra`
 - `gpt-5.6-luna`
 - `claude-opus-4-8`
-- `gemini-3.1-pro-preview`
-- `gemini-3-flash-preview`
+- `gpt-6.1-sol`
+- `gemini-3.8-flash`
 - `gemini-3.5-flash`
 - `deepseek-v4-flash`
 - `deepseek-v4-pro`
@@ -231,5 +231,7 @@ curl -fsSL https://raw.githubusercontent.com/octer-ai/octer-shell/refs/heads/mas
 ```bash
 curl -sS https://oclaw.octer.ai/v1/chat/completions \
   -H "Authorization: Bearer <KEY>" -H "Content-Type: application/json" \
-  -d '{"model":"gemini-3-flash-preview","messages":[{"role":"user","content":"你好"}]}'
+  -d '{"model":"gemini-3.8-flash","messages":[{"role":"user","content":"你好"}]}'
 ```
+
+旧配置兼容：显式传入 `gemini-3.1-pro-preview` 时迁移到 `gpt-6.1-sol`；`gemini-3-flash-preview` 迁移到 `gemini-3.8-flash`。旧模型不再出现在安装菜单。

@@ -21,7 +21,7 @@
   .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx
 
 .EXAMPLE
-  .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3-flash-preview
+  .\set-openclaw-model.ps1 evo_xxxxxxxxxxxxxxxx gemini-3.8-flash
 
 .NOTES
   若系统禁止运行脚本，用：
@@ -50,8 +50,8 @@ $Models = @(
   'gpt-5.6-terra',
   'gpt-5.6-luna',
   'claude-opus-4-8',
-  'gemini-3.1-pro-preview',
-  'gemini-3-flash-preview',
+  'gpt-6.1-sol',
+  'gemini-3.8-flash',
   'gemini-3.5-flash',
   'deepseek-v4-flash',
   'deepseek-v4-pro',
@@ -90,6 +90,10 @@ function Select-Model([string]$Passed) {
 }
 
 $Model = Select-Model $Model
+switch ($Model) {
+  'gemini-3.1-pro-preview' { $Model = 'gpt-6.1-sol' }
+  'gemini-3-flash-preview' { $Model = 'gemini-3.8-flash' }
+}
 Write-Host "-> 选定模型: $Model"
 $ModelId  = "$Provider/$Model"           # model id 形如 provider/model
 # ────────────────────────────────────────────────────────
