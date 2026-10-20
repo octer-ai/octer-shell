@@ -63,7 +63,13 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 ./test-all-models.sh <API_KEY>
 ```
 
-By default the script tests every installer model plus GPT-6 Astra / Sol / Luna, Gemini 3.8 Flash, GLM-5.3, Gemini 3.1 Flash Lite, MiniMax M3, Qwen 3.7 Max / Plus, and Claude Opus / Sonnet 5.5 with a basic Chat request and Hermes' critical `SSE + function tools` path. Those eleven additions are connectivity probes and are not in the installer menu yet. It prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key.
+The default catalog follows `octer_user_server`'s `feat_test` branch (2026-10-20, commit `a2b0085`): 26 active text models, each tested with basic Chat and Hermes' critical `SSE + function tools` path, for 52 requests (156 with the extended matrix). It uses text models from the [OClaw pricing catalog](https://github.com/octer-ai/octer_user_server/blob/a2b0085/framework/config/oclaw_pricing.yaml), excluding IDs in the [retirement policy](https://github.com/octer-ai/octer_user_server/blob/a2b0085/framework/base/model_retirements.py). Installer menus are maintained separately.
+
+- Added probes: `gpt-6.1-sol`, `gemini-4-argon`, `gemini-3.6-flash`, `claude-haiku-5-5`, `kimi-k3`, and `deepseek-v4-1-flash-260910`.
+- MiniMax uses the server's exact ID `MiniMax/MiniMax-M3`, replacing `MiniMax-M3`.
+- Default probes exclude retired `gemini-3.1-pro-preview` and `gemini-3-flash-preview`, plus `gemini-3.1-flash-lite`, which is absent from the current OClaw pricing catalog. Image and video models are outside this Chat test's scope.
+
+Requests run sequentially. The script prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key. The default catalog reflects code configuration; it does not establish deployment or connectivity in the target environment. `OCTER_MODELS` still accepts explicit model IDs for troubleshooting.
 
 Claude Opus 5.5 and Sonnet 5.5 [do not support forced tool use](https://platform.claude.com/docs/en/api/errors#forced-tool-use-not-supported). Their tool probes use `tool_choice: "auto"` and ask for `ping` in the prompt. A tool test passes only when the response contains a `ping` tool call; HTTP 200 alone does not pass. Other models keep the named, forced `ping` selection.
 

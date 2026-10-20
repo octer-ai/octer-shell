@@ -25,10 +25,14 @@ while [ "$#" -gt 0 ]; do
 done
 python3 - "$payload" <<'PY'
 import json
+import os
 import sys
 
 with open(sys.argv[1]) as f:
     request = json.load(f)
+if os.environ.get("MOCK_REQUEST_LOG"):
+    with open(os.environ["MOCK_REQUEST_LOG"], "a") as f:
+        f.write(json.dumps(request) + "\n")
 if request.get("tools"):
     expected = (
         "auto" if request["model"] in ("claude-opus-5-5", "claude-sonnet-5-5")
@@ -98,9 +102,18 @@ grep -q '结果: PASS=6  FAIL=6  INCONCLUSIVE=0  TOTAL=12' "$OUTPUT"
 grep -q 'SSE 成功，但未收到 ping 工具调用' "$OUTPUT"
 grep -q 'Chat 成功，但未收到 ping 工具调用' "$OUTPUT"
 
-python3 - "$REPO_DIR" <<'PY'
+# Exercise the default catalog too: newly added models and the MiniMax vendor
+# prefix must actually reach the HTTP payload, with retired IDs excluded.
+PATH="$TEST_DIR/bin:$PATH" \
+  OCTER_MODELS='' OCTER_EXTENDED=0 MOCK_REQUEST_LOG="$TEST_DIR/requests.jsonl" \
+  "$REPO_DIR/test-all-models.sh" 'evo_abcdefghijklmnopqrstuvwxyz' 'https://example.test/v1' > "$OUTPUT"
+grep -q '结果: PASS=52  FAIL=0  INCONCLUSIVE=0  TOTAL=52' "$OUTPUT"
+
+python3 - "$REPO_DIR" "$TEST_DIR/requests.jsonl" <<'PY'
+import json
 import re
 import sys
+from collections import Counter
 from pathlib import Path
 
 root = Path(sys.argv[1])
@@ -132,20 +145,34 @@ for name, catalog in catalogs.items():
     if configured != catalog:
         raise SystemExit(f"model lists differ: set-hermes-model.sh={configured!r}, {name}={catalog!r}")
 
+# Active text catalog from octer_user_server feat_test a2b0085 (2026-10-20).
+# Keep installer parity independent: menus may lag public model retirements.
+retired = {"gemini-3.1-pro-preview", "gemini-3-flash-preview"}
 probe_only = [
-    "gemini-3.1-flash-lite", "MiniMax-M3", "qwen3.7-max", "qwen3.7-plus",
+    "MiniMax/MiniMax-M3", "qwen3.7-max", "qwen3.7-plus",
     "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gemini-3.8-flash", "glm-5.3",
     "claude-opus-5-5", "claude-sonnet-5-5",
+    "gpt-6.1-sol", "gemini-4-argon", "gemini-3.6-flash", "claude-haiku-5-5",
+    "kimi-k3", "deepseek-v4-1-flash-260910",
 ]
-if probe_models != configured + probe_only:
+expected = list(dict.fromkeys([m for m in configured if m not in retired] + probe_only))
+if set(probe_models) != set(expected) or len(probe_models) != len(expected):
     raise SystemExit(
-        f"connectivity test models differ: expected {configured + probe_only!r}, "
+        f"connectivity test models differ: expected {expected!r}, "
         f"got {probe_models!r}"
     )
 if "qwen3.8-max" not in configured:
     raise SystemExit("qwen3.8-max missing from configured models")
-if set(probe_only).intersection(configured):
-    raise SystemExit("probe-only models unexpectedly added to the installer")
+excluded = retired | {"MiniMax-M3", "gemini-3.1-flash-lite"}
+if excluded.intersection(probe_models):
+    raise SystemExit("retired or unconfigured model IDs in default probes")
+requests = [json.loads(line) for line in Path(sys.argv[2]).read_text().splitlines()]
+if Counter(request["model"] for request in requests) != Counter({m: 2 for m in expected}):
+    raise SystemExit("default requests do not cover every active text model twice")
+for model in expected:
+    calls = [request for request in requests if request["model"] == model]
+    if sum(bool(request.get("stream") and request.get("tools")) for request in calls) != 1:
+        raise SystemExit(f"missing SSE+Tools probe for {model}")
 PY
 
 if "$REPO_DIR/test-all-models.sh" '' >/dev/null 2>&1; then

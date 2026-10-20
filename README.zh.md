@@ -61,7 +61,13 @@
 ./test-all-models.sh <API_KEY>
 ```
 
-脚本默认逐个测试安装脚本中的模型，以及 GPT-6 Astra / Sol / Luna、Gemini 3.8 Flash、GLM-5.3、Gemini 3.1 Flash Lite、MiniMax M3、Qwen 3.7 Max / Plus、Claude Opus / Sonnet 5.5 的普通 Chat 请求和 Hermes `SSE + function tools` 请求，并在最后输出汇总表、HTTP 状态、错误摘要和上游 request ID。这十一个候选模型仅用于连通性探测，尚未加入安装脚本的模型菜单。测试按顺序执行，API Key 不会打印。
+默认清单按 `octer_user_server` 的 `feat_test` 分支更新（2026-10-20，提交 `a2b0085`），覆盖 26 个活跃文本模型，逐个发送普通 Chat 和 Hermes `SSE + function tools` 请求，共 52 次；扩展矩阵共 156 次。依据是 [OClaw 配价清单](https://github.com/octer-ai/octer_user_server/blob/a2b0085/framework/config/oclaw_pricing.yaml)中的文本模型，并排除[下架策略](https://github.com/octer-ai/octer_user_server/blob/a2b0085/framework/base/model_retirements.py)中的 ID。安装菜单独立维护。
+
+- 新增测试：`gpt-6.1-sol`、`gemini-4-argon`、`gemini-3.6-flash`、`claude-haiku-5-5`、`kimi-k3`、`deepseek-v4-1-flash-260910`。
+- MiniMax 使用服务端精确 ID `MiniMax/MiniMax-M3`，替换旧的 `MiniMax-M3`。
+- 默认不再探测已下架的 `gemini-3.1-pro-preview`、`gemini-3-flash-preview`，以及当前 OClaw 配价清单未配置的 `gemini-3.1-flash-lite`。图片、视频模型不属于此 Chat 测试范围。
+
+测试按顺序执行，最后输出汇总表、HTTP 状态、错误摘要和上游 request ID，API Key 不会打印。默认清单表示代码配置范围，不代表目标环境已发布或连通性验证通过；`OCTER_MODELS` 仍可显式指定任意模型进行排查。
 
 Claude Opus 5.5 和 Sonnet 5.5 [不支持强制工具调用](https://platform.claude.com/docs/en/api/errors#forced-tool-use-not-supported)，因此工具测试使用 `tool_choice: "auto"`，并在提示词中要求调用 `ping`。响应中实际包含 `ping` 工具调用才会通过，单纯 HTTP 200 不算通过；其它模型继续强制选择 `ping`。
 

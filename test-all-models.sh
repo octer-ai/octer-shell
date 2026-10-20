@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
-# Probe installer models and newer OClaw chat candidates.
+# Probe active OClaw text models from octer_user_server feat_test.
 # Usage: ./test-all-models.sh <API_KEY> [BASE_URL]
 set -uo pipefail
 
 DEFAULT_BASE_URL="https://oclaw.octer.ai/v1"
+# Synced 2026-10-20 against octer_user_server feat_test (a2b0085):
+# framework/config/oclaw_pricing.yaml token_priced, excluding image models and
+# framework/base/model_retirements.py IDs. Historical prices include retired IDs.
 DEFAULT_MODELS=(
   "gpt-5.5"
   "gpt-5.6-sol"
   "gpt-5.6-terra"
   "gpt-5.6-luna"
   "claude-opus-4-8"
-  "gemini-3.1-pro-preview"
-  "gemini-3-flash-preview"
   "gemini-3.5-flash"
   "deepseek-v4-flash"
   "deepseek-v4-pro"
   "glm-5.2"
   "qwen3.8-max"
-  "gemini-3.1-flash-lite"
-  "MiniMax-M3"
+  "MiniMax/MiniMax-M3"
   "qwen3.7-max"
   "qwen3.7-plus"
   "gpt-6-astra"
@@ -28,6 +28,12 @@ DEFAULT_MODELS=(
   "glm-5.3"
   "claude-opus-5-5"
   "claude-sonnet-5-5"
+  "gpt-6.1-sol"
+  "gemini-4-argon"
+  "gemini-3.6-flash"
+  "claude-haiku-5-5"
+  "kimi-k3"
+  "deepseek-v4-1-flash-260910"
 )
 
 usage() {
@@ -38,6 +44,7 @@ usage() {
 默认对每个模型测试：
   1. 普通 Chat Completions（非流式）
   2. SSE + function tools（Hermes 关键路径）
+  模型清单与 user_server feat_test 的活跃文本模型对齐（26 个）
 
 环境变量:
   OCTER_API_KEY             API Key，也可代替第一个参数
