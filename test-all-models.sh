@@ -4,11 +4,10 @@
 set -uo pipefail
 
 DEFAULT_BASE_URL="https://oclaw.octer.ai/v1"
-# Synced 2026-10-20 against octer_user_server feat_test (a2b0085):
+# Synced 2026-10-20 against octer_user_server feat_test (b7a7cc2):
 # framework/config/oclaw_pricing.yaml token_priced, excluding image models and
 # framework/base/model_retirements.py IDs. Historical prices include retired IDs.
 DEFAULT_MODELS=(
-  "gpt-5.5"
   "gpt-5.6-sol"
   "gpt-5.6-terra"
   "gpt-5.6-luna"
@@ -30,7 +29,6 @@ DEFAULT_MODELS=(
   "claude-sonnet-5-5"
   "gpt-6.1-sol"
   "gemini-4-argon"
-  "gemini-3.6-flash"
   "claude-haiku-5-5"
   "kimi-k3"
   "deepseek-v4-1-flash-260910"
@@ -44,7 +42,7 @@ usage() {
 默认对每个模型测试：
   1. 普通 Chat Completions（非流式）
   2. SSE + function tools（Hermes 关键路径）
-  模型清单与 user_server feat_test 的活跃文本模型对齐（26 个）
+  模型清单与 user_server feat_test 的活跃文本模型对齐（24 个）
 
 环境变量:
   OCTER_API_KEY             API Key，也可代替第一个参数
@@ -58,7 +56,7 @@ usage() {
 
 示例:
   ./test-all-models.sh evo_xxx
-  OCTER_MODELS='gpt-5.5,glm-5.2' ./test-all-models.sh evo_xxx
+  OCTER_MODELS='gpt-6-astra,glm-5.2' ./test-all-models.sh evo_xxx
   OCTER_EXTENDED=1 ./test-all-models.sh evo_xxx
 EOF
 }

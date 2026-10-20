@@ -85,7 +85,7 @@ grep -q '结果: PASS=12  FAIL=0  INCONCLUSIVE=0  TOTAL=12' "$OUTPUT"
 
 # Cover auto tool selection for both Claude 5.5 models in all three tool scenarios.
 PATH="$TEST_DIR/bin:$PATH" \
-  OCTER_MODELS='claude-opus-5-5,claude-sonnet-5-5,claude-opus-4-8,gpt-5.5' \
+  OCTER_MODELS='claude-opus-5-5,claude-sonnet-5-5,claude-opus-4-8,gpt-5.6-sol' \
   OCTER_EXTENDED=1 \
   "$REPO_DIR/test-all-models.sh" 'evo_abcdefghijklmnopqrstuvwxyz' 'https://example.test/v1' > "$OUTPUT"
 grep -q '结果: PASS=24  FAIL=0  INCONCLUSIVE=0  TOTAL=24' "$OUTPUT"
@@ -107,7 +107,7 @@ grep -q 'Chat 成功，但未收到 ping 工具调用' "$OUTPUT"
 PATH="$TEST_DIR/bin:$PATH" \
   OCTER_MODELS='' OCTER_EXTENDED=0 MOCK_REQUEST_LOG="$TEST_DIR/requests.jsonl" \
   "$REPO_DIR/test-all-models.sh" 'evo_abcdefghijklmnopqrstuvwxyz' 'https://example.test/v1' > "$OUTPUT"
-grep -q '结果: PASS=52  FAIL=0  INCONCLUSIVE=0  TOTAL=52' "$OUTPUT"
+grep -q '结果: PASS=48  FAIL=0  INCONCLUSIVE=0  TOTAL=48' "$OUTPUT"
 
 python3 - "$REPO_DIR" "$TEST_DIR/requests.jsonl" <<'PY'
 import json
@@ -145,14 +145,16 @@ for name, catalog in catalogs.items():
     if configured != catalog:
         raise SystemExit(f"model lists differ: set-hermes-model.sh={configured!r}, {name}={catalog!r}")
 
-# Active text catalog from octer_user_server feat_test a2b0085 (2026-10-20).
+# Active text catalog from octer_user_server feat_test b7a7cc2 (2026-10-20).
 # Keep installer parity independent: menus may lag public model retirements.
-retired = {"gemini-3.1-pro-preview", "gemini-3-flash-preview"}
+retired = {
+    "gpt-5.5", "gemini-3.6-flash", "gemini-3.1-pro-preview", "gemini-3-flash-preview",
+}
 probe_only = [
     "MiniMax/MiniMax-M3", "qwen3.7-max", "qwen3.7-plus",
     "gpt-6-astra", "gpt-6-sol", "gpt-6-luna", "gemini-3.8-flash", "glm-5.3",
     "claude-opus-5-5", "claude-sonnet-5-5",
-    "gpt-6.1-sol", "gemini-4-argon", "gemini-3.6-flash", "claude-haiku-5-5",
+    "gpt-6.1-sol", "gemini-4-argon", "claude-haiku-5-5",
     "kimi-k3", "deepseek-v4-1-flash-260910",
 ]
 expected = list(dict.fromkeys([m for m in configured if m not in retired] + probe_only))

@@ -63,11 +63,11 @@ You can still pass any other model name explicitly as the 2nd argument; it's use
 ./test-all-models.sh <API_KEY>
 ```
 
-The default catalog follows `octer_user_server`'s `feat_test` branch (2026-10-20, commit `a2b0085`): 26 active text models, each tested with basic Chat and Hermes' critical `SSE + function tools` path, for 52 requests (156 with the extended matrix). It uses text models from the [OClaw pricing catalog](https://github.com/octer-ai/octer_user_server/blob/a2b0085/framework/config/oclaw_pricing.yaml), excluding IDs in the [retirement policy](https://github.com/octer-ai/octer_user_server/blob/a2b0085/framework/base/model_retirements.py). Installer menus are maintained separately.
+The default catalog follows `octer_user_server`'s `feat_test` branch (2026-10-20, commit `b7a7cc2`): 24 active text models, each tested with basic Chat and Hermes' critical `SSE + function tools` path, for 48 requests (144 with the extended matrix). It uses text models from the [OClaw pricing catalog](https://github.com/octer-ai/octer_user_server/blob/b7a7cc2/framework/config/oclaw_pricing.yaml), excluding IDs in the [retirement policy](https://github.com/octer-ai/octer_user_server/blob/b7a7cc2/framework/base/model_retirements.py). Installer menus are maintained separately.
 
-- Added probes: `gpt-6.1-sol`, `gemini-4-argon`, `gemini-3.6-flash`, `claude-haiku-5-5`, `kimi-k3`, and `deepseek-v4-1-flash-260910`.
+- Added probes: `gpt-6.1-sol`, `gemini-4-argon`, `claude-haiku-5-5`, `kimi-k3`, and `deepseek-v4-1-flash-260910`.
 - MiniMax uses the server's exact ID `MiniMax/MiniMax-M3`, replacing `MiniMax-M3`.
-- Default probes exclude retired `gemini-3.1-pro-preview` and `gemini-3-flash-preview`, plus `gemini-3.1-flash-lite`, which is absent from the current OClaw pricing catalog. Image and video models are outside this Chat test's scope.
+- Default probes exclude retired `gpt-5.5`, `gemini-3.6-flash`, `gemini-3.1-pro-preview`, and `gemini-3-flash-preview`, plus `gemini-3.1-flash-lite`, which is absent from the current OClaw pricing catalog. Image and video models are outside this Chat test's scope.
 
 Requests run sequentially. The script prints a final matrix, HTTP statuses, concise errors, and upstream request IDs without displaying the API key. The default catalog reflects code configuration; it does not establish deployment or connectivity in the target environment. `OCTER_MODELS` still accepts explicit model IDs for troubleshooting.
 
@@ -77,7 +77,7 @@ Use environment variables to narrow or expand the matrix:
 
 ```bash
 # Test only two models
-OCTER_MODELS='gpt-5.5,glm-5.2' ./test-all-models.sh <API_KEY>
+OCTER_MODELS='gpt-6-astra,glm-5.2' ./test-all-models.sh <API_KEY>
 
 # Test Chat, Tools, SSE, SSE+Tools, reasoning+Tools, and Responses
 OCTER_EXTENDED=1 ./test-all-models.sh <API_KEY>
